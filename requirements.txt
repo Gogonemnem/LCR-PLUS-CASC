@@ -1,4 +1,5 @@
 torch
+tensorflow
 transformers
 tqdm
 numpy
