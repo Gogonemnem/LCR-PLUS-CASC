@@ -43,5 +43,5 @@ class BERTLinear(nn.Module):
 
         logits_cat = self.ff_cat(se)  # (bsz, num_cat)
         logits_pol = self.ff_pol(se)  # (bsz, num_pol)
-        loss = LQLoss(0.4, self.aspect_weights)(self.softmax(logits_cat), labels_cat) + LQLoss(0.4, self.sentiment_weights)(self.softmax(logits_pol), labels_pol)
+        loss = LQLoss(0.4, self.aspect_weights)(F.softmax(logits_cat), labels_cat) + LQLoss(0.4, self.sentiment_weights)(F.softmax(logits_pol), labels_pol)
         return loss, logits_cat, logits_pol

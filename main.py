@@ -4,8 +4,12 @@ from score_computer import ScoreComputer
 from labeler import Labeler
 from trainer import Trainer
 
+# import torch
+# print(torch.cuda.is_available())
+
 vocabGenerator = VocabGenerator()
-aspect_vocabularies, sentiment_vocabularies = vocabGenerator()
+# aspect_vocabularies, sentiment_vocabularies = vocabGenerator()
+aspect_vocabularies, sentiment_vocabularies = vocabGenerator.from_folder()
 
 extracter = Extracter()
 sentences, aspects, opinions = extracter()

@@ -35,7 +35,7 @@ class VocabGenerator:
         # Populate vocabulary frequencies for each category
         for category in categories:
             print(f'Generating vocabulary for {category} category...')
-            with open(f'{self.root_path}/train.txt') as f:
+            with open(f'{self.root_path}/train.txt', encoding='utf-8') as f:
                 for line in tqdm(f):
                     text = line.strip()
                     if category in text:
@@ -79,6 +79,29 @@ class VocabGenerator:
                 continue
             freq_table[cat][token] = freq_table[cat].get(token, 0) + 1
 
+    def from_folder(self, folder_path=None, aspect_categories=None, sentiment_categories=None):
+        if folder_path is None:
+            folder_path = self.root_path
 
+        if aspect_categories is None:
+            aspect_categories = aspect_category_mapper[self.domain]
+        aspect_vocabularies = self._load_vocabulary(aspect_categories, folder_path)
 
-    
+        if sentiment_categories is None:
+            sentiment_categories = sentiment_category_mapper[self.domain]
+        sentiment_vocabularies = self._load_vocabulary(sentiment_categories, folder_path)
+
+        return aspect_vocabularies, sentiment_vocabularies
+
+    def _load_vocabulary(self, categories, folder_path):
+        vocabularies = {}
+
+        for category in categories:
+            with open(f'{folder_path}/dict_{category}.txt', encoding='utf-8') as f:
+                words = []
+                for line in tqdm(f):
+                    word, freq = line.strip().split()
+                    words.append((freq, word))
+                    vocabularies[category] = words
+        
+        return vocabularies

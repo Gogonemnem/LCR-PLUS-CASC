@@ -26,7 +26,7 @@ class ScoreComputer:
         aspect_sets = self.load_vocabulary(self.aspect_vocabularies, M[self.domain])
         polarity_sets = self.load_vocabulary(self.sentiment_vocabularies, M[self.domain])
 
-        f = open(f'{self.root_path}/scores.txt', 'w')
+        f = open(f'{self.root_path}/scores.txt', 'w', encoding='utf-8')
         
         for sentence, aspect, opinion in tqdm(zip(sentences, aspects, opinions)):
             aspect_words = set()
