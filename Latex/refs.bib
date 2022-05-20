@@ -1,15 +1,88 @@
 
+@misc{noauthor_spacy_nodate,
+	title = {{spaCy} · {Industrial}-strength {Natural} {Language} {Processing} in {Python}},
+	url = {https://spacy.io/},
+	abstract = {spaCy is a free open-source library for Natural Language Processing in Python. It features NER, POS tagging, dependency parsing, word vectors and more.},
+	language = {en},
+	urldate = {2022-05-16},
+}
+
+@article{Blei2003LDA,
+	title = {Latent dirichlet allocation},
+	volume = {3},
+	issn = {1532-4435},
+	abstract = {We describe latent Dirichlet allocation (LDA), a generative probabilistic model for collections of discrete data such as text corpora. LDA is a three-level hierarchical Bayesian model, in which each item of a collection is modeled as a finite mixture over an underlying set of topics. Each topic is, in turn, modeled as an infinite mixture over an underlying set of topic probabilities. In the context of text modeling, the topic probabilities provide an explicit representation of a document. We present efficient approximate inference techniques based on variational methods and an EM algorithm for empirical Bayes parameter estimation. We report results in document modeling, text classification, and collaborative filtering, comparing to a mixture of unigrams model and the probabilistic LSI model.},
+	journal = {The Journal of Machine Learning Research},
+	author = {Blei, David M. and Ng, Andrew Y. and Jordan, Michael I.},
+	month = mar,
+	year = {2003},
+	pages = {993--1022},
+}
+
 @inproceedings{Liao2019LCC+GBC,
 	address = {Hong Kong, China},
 	title = {Coupling {Global} and {Local} {Context} for {Unsupervised} {Aspect} {Extraction}},
 	abstract = {Aspect words, indicating opinion targets, are essential in expressing and understanding human opinions. To identify aspects, most previous efforts focus on using sequence tagging models trained on human-annotated data. This work studies unsupervised aspect extraction and explores how words appear in global context (on sentence level) and local context (conveyed by neighboring words). We propose a novel neural model, capable of coupling global and local representation to discover aspect words. Experimental results on two benchmarks, laptop and restaurant reviews, show that our model significantly outperforms the state-of-the-art models from previous studies evaluated with varying metrics. Analysis on model output show our ability to learn meaningful and coherent aspect representations. We further investigate how words distribute in global and local context, and find that aspect and non-aspect words do exhibit different context, interpreting our superiority in unsupervised aspect extraction.},
 	urldate = {2022-05-11},
-	booktitle = {2019 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing} and the 9th {International} {Joint} {Conference} on {Natural} {Language} {Processing} ({EMNLP}-{IJCNLP})},
+	booktitle = {2019 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing} and the 9th {International} {Joint} {Conference} on {Natural} {Language} {Processing} ({EMNLP}-{IJCNLP} 2019)},
 	publisher = {Association for Computational Linguistics},
 	author = {Liao, Ming and Li, Jing and Zhang, Haisong and Wang, Lingzhi and Wu, Xixin and Wong, Kam-Fai},
 	month = nov,
 	year = {2019},
 	pages = {4579--4589},
+}
+
+@inproceedings{Ramachandran2017UnsupervisedSeq2Seq,
+	address = {Copenhagen, Denmark},
+	title = {Unsupervised {Pretraining} for {Sequence} to {Sequence} {Learning}},
+	abstract = {This work presents a general unsupervised learning method to improve the accuracy of sequence to sequence (seq2seq) models. In our method, the weights of the encoder and decoder of a seq2seq model are initialized with the pretrained weights of two language models and then fine-tuned with labeled data. We apply this method to challenging benchmarks in machine translation and abstractive summarization and find that it significantly improves the subsequent supervised models. Our main result is that pretraining improves the generalization of seq2seq models. We achieve state-of-the-art results on the WMT English→German task, surpassing a range of methods using both phrase-based machine translation and neural machine translation. Our method achieves a significant improvement of 1.3 BLEU from th previous best models on both WMT'14 and WMT'15 English→German. We also conduct human evaluations on abstractive summarization and find that our method outperforms a purely supervised learning baseline in a statistically significant manner.},
+	urldate = {2022-05-13},
+	booktitle = {2017 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing} ({EMNLP} 2017)},
+	publisher = {Association for Computational Linguistics},
+	author = {Ramachandran, Prajit and Liu, Peter and Le, Quoc},
+	month = sep,
+	year = {2017},
+	pages = {383--391},
+}
+
+@inproceedings{Wang2015Boltzmann,
+	address = {Beijing, China},
+	title = {Sentiment-{Aspect} {Extraction} based on {Restricted} {Boltzmann} {Machines}},
+	urldate = {2022-05-12},
+	booktitle = {53rd {Annual} {Meeting} of the {Association} for {Computational} {Linguistics} and the 7th {International} {Joint} {Conference} on {Natural} {Language} {Processing} ({ACL}-{IJCNLP} 2015)},
+	publisher = {Association for Computational Linguistics},
+	author = {Wang, Linlin and Liu, Kang and Cao, Zhu and Zhao, Jun and de Melo, Gerard},
+	month = jul,
+	year = {2015},
+	pages = {616--625},
+}
+
+@inproceedings{Xu2012JAS,
+	address = {New York, NY, USA},
+	series = {{CIKM} '12},
+	title = {Towards jointly extracting aspects and aspect-specific sentiment knowledge},
+	isbn = {9781450311564},
+	abstract = {In this paper, we aim to jointly extract aspects and aspect-specific sentiment knowledge from online reviews, where the sentiment knowledge refers to the aspect-specific opinion words along with their aspect-aware sentiment polarities. To this end, we propose a Joint Aspect/Sentiment model (JAS). JAS detects aspect-specific opinion words by integrating opinion word lexicon knowledge to explicitly separate opinion words from factual words. More importantly, JAS exploits sentiment prior and aspect-contextual sentence-level co-occurrences of opinion words in reviews to further identify aspect-aware sentiment polarities for the opinion words. We apply the learned aspect-specific sentiment knowledge to practical aspect-level sentiment analysis tasks. Experimental results show the effectiveness of JAS in learning aspect-specific sentiment knowledge and the practical value of this knowledge when applied to aspect-level sentiment classification.},
+	urldate = {2022-05-11},
+	booktitle = {21st {ACM} international conference on {Information} and knowledge management ({CIKM} 2012)},
+	publisher = {Association for Computing Machinery},
+	author = {Xu, Xueke and Tan, Songbo and Liu, Yue and Cheng, Xueqi and Lin, Zheng},
+	month = oct,
+	year = {2012},
+	keywords = {aspect-level sentiment analysis, aspect-specific sentiment knowledge, joint aspect/setniment model, online reviews},
+	pages = {1895--1899},
+}
+
+@inproceedings{Zhao2010MaxEnt-LDA,
+	address = {Cambridge, MA},
+	title = {Jointly {Modeling} {Aspects} and {Opinions} with a {MaxEnt}-{LDA} {Hybrid}},
+	urldate = {2022-05-12},
+	booktitle = {2010 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing} ({EMNLP} 2010)},
+	publisher = {Association for Computational Linguistics},
+	author = {Zhao, Xin and Jiang, Jing and Yan, Hongfei and Li, Xiaoming},
+	month = oct,
+	year = {2010},
+	pages = {56--65},
 }
 
 @incollection{Zhuang2020JASA,
@@ -18,7 +91,7 @@
 	isbn = {9781450380164},
 	abstract = {Aspect-based sentiment analysis is a substantial step towards text understanding which benefits numerous applications. Since most existing algorithms require a large amount of labeled data or substantial external language resources, applying them on a new domain or a new language is usually expensive and time-consuming. We aim to build an aspect-based sentiment analysis model from an unlabeled corpus with minimal guidance from users, i.e., only a small set of seed words for each aspect class and each sentiment class. We employ an autoencoder structure with attention to learn two dictionary matrices for aspect and sentiment respectively where each row of the dictionary serves as an embedding vector for an aspect or a sentiment class. We propose to utilize the user-given seed words to regularize the dictionary learning. In addition, we improve the model by joining the aspect and sentiment encoder in the reconstruction of sentiment in sentences. The joint structure enables sentiment embeddings in the dictionary to be tuned towards the aspect-specific sentiment words for each aspect, which benefits the classification performance. We conduct experiments on two real data sets to verify the effectiveness of our models.},
 	urldate = {2022-05-11},
-	booktitle = {Proceedings of the 43rd {International} {ACM} {SIGIR} {Conference} on {Research} and {Development} in {Information} {Retrieval}},
+	booktitle = {43rd {International} {ACM} {SIGIR} {Conference} on {Research} and {Development} in {Information} {Retrieval} ({SIGIR} 2020)},
 	publisher = {Association for Computing Machinery},
 	author = {Zhuang, Honglei and Guo, Fang and Zhang, Chao and Liu, Liyuan and Han, Jiawei},
 	month = jul,
@@ -27,16 +100,17 @@
 	pages = {1241--1250},
 }
 
-@inproceedings{Zhao2010MaxEnt-LDA,
-	address = {Cambridge, MA},
-	title = {Jointly {Modeling} {Aspects} and {Opinions} with a {MaxEnt}-{LDA} {Hybrid}},
-	urldate = {2022-05-12},
-	booktitle = {Proceedings of the 2010 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing}},
+@inproceedings{He2017ABAE,
+	address = {Vancouver, Canada},
+	title = {An {Unsupervised} {Neural} {Attention} {Model} for {Aspect} {Extraction}},
+	abstract = {Aspect extraction is an important and challenging task in aspect-based sentiment analysis. Existing works tend to apply variants of topic models on this task. While fairly successful, these methods usually do not produce highly coherent aspects. In this paper, we present a novel neural approach with the aim of discovering coherent aspects. The model improves coherence by exploiting the distribution of word co-occurrences through the use of neural word embeddings. Unlike topic models which typically assume independently generated words, word embedding models encourage words that appear in similar contexts to be located close to each other in the embedding space. In addition, we use an attention mechanism to de-emphasize irrelevant words during training, further improving the coherence of aspects. Experimental results on real-life datasets demonstrate that our approach discovers more meaningful and coherent aspects, and substantially outperforms baseline methods on several evaluation tasks.},
+	urldate = {2022-05-09},
+	booktitle = {55th {Annual} {Meeting} of the {Association} for {Computational} {Linguistics} ({ACL} 2017)},
 	publisher = {Association for Computational Linguistics},
-	author = {Zhao, Xin and Jiang, Jing and Yan, Hongfei and Li, Xiaoming},
-	month = oct,
-	year = {2010},
-	pages = {56--65},
+	author = {He, Ruidan and Lee, Wee Sun and Ng, Hwee Tou and Dahlmeier, Daniel},
+	month = jul,
+	year = {2017},
+	pages = {388--397},
 }
 
 @article{Zhang2022Survey,
@@ -50,34 +124,6 @@
 	keywords = {Computation and Language (cs.CL), FOS: Computer and information sciences},
 }
 
-@inproceedings{Xu2012JAS,
-	address = {New York, NY, USA},
-	series = {{CIKM} '12},
-	title = {Towards jointly extracting aspects and aspect-specific sentiment knowledge},
-	isbn = {9781450311564},
-	abstract = {In this paper, we aim to jointly extract aspects and aspect-specific sentiment knowledge from online reviews, where the sentiment knowledge refers to the aspect-specific opinion words along with their aspect-aware sentiment polarities. To this end, we propose a Joint Aspect/Sentiment model (JAS). JAS detects aspect-specific opinion words by integrating opinion word lexicon knowledge to explicitly separate opinion words from factual words. More importantly, JAS exploits sentiment prior and aspect-contextual sentence-level co-occurrences of opinion words in reviews to further identify aspect-aware sentiment polarities for the opinion words. We apply the learned aspect-specific sentiment knowledge to practical aspect-level sentiment analysis tasks. Experimental results show the effectiveness of JAS in learning aspect-specific sentiment knowledge and the practical value of this knowledge when applied to aspect-level sentiment classification.},
-	urldate = {2022-05-11},
-	booktitle = {Proceedings of the 21st {ACM} international conference on {Information} and knowledge management},
-	publisher = {Association for Computing Machinery},
-	author = {Xu, Xueke and Tan, Songbo and Liu, Yue and Cheng, Xueqi and Lin, Zheng},
-	month = oct,
-	year = {2012},
-	keywords = {aspect-level sentiment analysis, aspect-specific sentiment knowledge, joint aspect/setniment model, online reviews},
-	pages = {1895--1899},
-}
-
-@inproceedings{Wang2015Boltzmann,
-	address = {Beijing, China},
-	title = {Sentiment-{Aspect} {Extraction} based on {Restricted} {Boltzmann} {Machines}},
-	urldate = {2022-05-12},
-	booktitle = {Proceedings of the 53rd {Annual} {Meeting} of the {Association} for {Computational} {Linguistics} and the 7th {International} {Joint} {Conference} on {Natural} {Language} {Processing} ({Volume} 1: {Long} {Papers})},
-	publisher = {Association for Computational Linguistics},
-	author = {Wang, Linlin and Liu, Kang and Cao, Zhu and Zhao, Jun and de Melo, Gerard},
-	month = jul,
-	year = {2015},
-	pages = {616--625},
-}
-
 @article{Tulkens2020CAt,
 	title = {Embarrassingly {Simple} {Unsupervised} {Aspect} {Extraction}},
 	abstract = {We present a simple but effective method for aspect identification in sentiment analysis. Our unsupervised method only requires word embeddings and a POS tagger, and is therefore straightforward to apply to new domains and languages. We introduce Contrastive Attention (CAt), a novel single-head attention mechanism based on an RBF kernel, which gives a considerable boost in performance and makes the model interpretable. Previous work relied on syntactic features and complex neural models. We show that given the simplicity of current benchmark datasets for aspect extraction, such complex models are not needed. The code to reproduce the experiments reported in this paper is available at https://github.com/clips/cat},
@@ -87,19 +133,6 @@
 	month = apr,
 	year = {2020},
 	keywords = {Computer Science - Computation and Language},
-}
-
-@inproceedings{Ramachandran2017UnsupervisedSeq2Seq,
-	address = {Copenhagen, Denmark},
-	title = {Unsupervised {Pretraining} for {Sequence} to {Sequence} {Learning}},
-	abstract = {This work presents a general unsupervised learning method to improve the accuracy of sequence to sequence (seq2seq) models. In our method, the weights of the encoder and decoder of a seq2seq model are initialized with the pretrained weights of two language models and then fine-tuned with labeled data. We apply this method to challenging benchmarks in machine translation and abstractive summarization and find that it significantly improves the subsequent supervised models. Our main result is that pretraining improves the generalization of seq2seq models. We achieve state-of-the-art results on the WMT English→German task, surpassing a range of methods using both phrase-based machine translation and neural machine translation. Our method achieves a significant improvement of 1.3 BLEU from th previous best models on both WMT'14 and WMT'15 English→German. We also conduct human evaluations on abstractive summarization and find that our method outperforms a purely supervised learning baseline in a statistically significant manner.},
-	urldate = {2022-05-13},
-	booktitle = {Proceedings of the 2017 {Conference} on {Empirical} {Methods} in {Natural} {Language} {Processing}},
-	publisher = {Association for Computational Linguistics},
-	author = {Ramachandran, Prajit and Liu, Peter and Le, Quoc},
-	month = sep,
-	year = {2017},
-	pages = {383--391},
 }
 
 @article{Meskele2020ALDONAr,
@@ -195,19 +228,6 @@
 	pages = {6989--6999},
 }
 
-@inproceedings{He2017ABAE,
-	address = {Vancouver, Canada},
-	title = {An {Unsupervised} {Neural} {Attention} {Model} for {Aspect} {Extraction}},
-	abstract = {Aspect extraction is an important and challenging task in aspect-based sentiment analysis. Existing works tend to apply variants of topic models on this task. While fairly successful, these methods usually do not produce highly coherent aspects. In this paper, we present a novel neural approach with the aim of discovering coherent aspects. The model improves coherence by exploiting the distribution of word co-occurrences through the use of neural word embeddings. Unlike topic models which typically assume independently generated words, word embedding models encourage words that appear in similar contexts to be located close to each other in the embedding space. In addition, we use an attention mechanism to de-emphasize irrelevant words during training, further improving the coherence of aspects. Experimental results on real-life datasets demonstrate that our approach discovers more meaningful and coherent aspects, and substantially outperforms baseline methods on several evaluation tasks.},
-	urldate = {2022-05-09},
-	booktitle = {55th {Annual} {Meeting} of the {ACL}},
-	publisher = {Association for Computational Linguistics},
-	author = {He, Ruidan and Lee, Wee Sun and Ng, Hwee Tou and Dahlmeier, Daniel},
-	month = jul,
-	year = {2017},
-	pages = {388--397},
-}
-
 @inproceedings{Wallaart2019HAABSA,
 	title = {A {Hybrid} {Approach} for {Aspect}-{Based} {Sentiment} {Analysis} {Using} a {Lexicalized} {Domain} {Ontology} and {Attentional} {Neural} {Models}},
 	volume = {11503},
@@ -219,19 +239,6 @@
 	author = {Wallaart, Olaf and Frasincar, Flavius},
 	year = {2019},
 	pages = {363--378},
-}
-
-@article{Blei2003LDA,
-	title = {Latent dirichlet allocation},
-	volume = {3},
-	issn = {1532-4435},
-	abstract = {We describe latent Dirichlet allocation (LDA), a generative probabilistic model for collections of discrete data such as text corpora. LDA is a three-level hierarchical Bayesian model, in which each item of a collection is modeled as a finite mixture over an underlying set of topics. Each topic is, in turn, modeled as an infinite mixture over an underlying set of topic probabilities. In the context of text modeling, the topic probabilities provide an explicit representation of a document. We present efficient approximate inference techniques based on variational methods and an EM algorithm for empirical Bayes parameter estimation. We report results in document modeling, text classification, and collaborative filtering, comparing to a mixture of unigrams model and the probabilistic LSI model.},
-	number = {null},
-	journal = {The Journal of Machine Learning Research},
-	author = {Blei, David M. and Ng, Andrew Y. and Jordan, Michael I.},
-	month = mar,
-	year = {2003},
-	pages = {993--1022},
 }
 
 @article{Honnibal2020Spacy,
