@@ -1,6 +1,6 @@
 config = {
-    'domain': 'laptop',
-    'device': 'cpu'
+    'domain': 'restaurant',
+    'device': 'cuda:0'
 }
 bert_mapper = {
     'laptop': 'activebus/BERT-DK_laptop',

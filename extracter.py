@@ -9,7 +9,7 @@ class Extracter:
     '''
 
     def __init__(self):
-        self.smodel = spacy.load('en')
+        self.smodel = spacy.load('en_core_web_sm')
         self.domain = config['domain']
         self.root_path = path_mapper[self.domain]
 
@@ -19,7 +19,7 @@ class Extracter:
         aspects = []
         opinions = []
 
-        with open(f'{self.root_path}/train.txt') as f:
+        with open(f'{self.root_path}/train.txt', encoding='utf-8') as f:
             for line in tqdm(f):
                 text = line.strip()
                 sentences.append(text)

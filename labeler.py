@@ -19,7 +19,7 @@ class Labeler:
             dist[pol] = []
 
         # Read scores
-        with open(f'{self.root_path}/scores.txt', 'r') as f:
+        with open(f'{self.root_path}/scores.txt', 'r', encoding='utf-8') as f:
             for idx, line in enumerate(f):
                 if idx % 2 == 1:
                     values = line.strip().split()
@@ -34,9 +34,9 @@ class Labeler:
             means[key] = np.mean(dist[key])
             sigma[key] = np.std(dist[key])
         
-        nf = open(f'{self.root_path}/label.txt', 'w')
+        nf = open(f'{self.root_path}/label.txt', 'w', encoding='utf-8')
         cnt = {}
-        with open(f'{self.root_path}/scores.txt', 'r') as f:
+        with open(f'{self.root_path}/scores.txt', 'r', encoding='utf-8') as f:
             sentence = None
             for idx, line in enumerate(f):
                 if idx % 2 == 1:
