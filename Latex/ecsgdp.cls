@@ -10,7 +10,7 @@
 %% Edited for use by Steven S. Aanen (2011)
 %%
 \NeedsTeXFormat{LaTeX2e}[1996/12/01]
-\ProvidesClass{mthesis.style}
+\ProvidesClass{ecsgdp}
               [2003/25/04 v1.6
    LaTeX document class]
 \def\baseclass{book}
@@ -41,6 +41,7 @@
 
 \usepackage{setspace}
 \onehalfspacing
+% \linespread{1.25}
 \usepackage{enumitem}
 %\setlength{\parindent}{0pt}
 %\setlength{\parskip}{2.0ex plus0.5ex minus0.2ex}
@@ -286,8 +287,8 @@
 % COLORS, PDF & LINKS
 
 \usepackage{color}
-\definecolor{cite}{RGB}{136,102,0}
-% \definecolor{cite}{RGB}{0,0,0}
+% \definecolor{cite}{RGB}{136,102,0}
+\definecolor{cite}{RGB}{0,0,0}
 \definecolor{link}{RGB}{0,0,0}
 %\definecolor{link}{gray}{0.6}
 \definecolor{url}{RGB}{83,83,176}
