@@ -35,5 +35,9 @@ class Extracter:
                         a.append(word.text)
                 opinions.append(' '.join(o) if len(o) > 0 else '##')
                 aspects.append(' '.join(a) if len(a) > 0 else '##')
+                # for chunk in words.noun_chunks:
+                #     a.append(chunk.text)
+                # aspects.append(a)
+                # return sentences, aspects, opinions
 
         return sentences, aspects, opinions

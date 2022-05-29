@@ -57,5 +57,5 @@ validation_data_size = 100
 learning_rate = 1e-5
 epochs = 20
 left_max_length = 100
-right_max_length = 10
-target_max_length = 100
+right_max_length = 100
+target_max_length = 10

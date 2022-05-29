@@ -1,5 +1,6 @@
 torch
 tensorflow
+tensorflow-addons
 transformers
 tqdm
 numpy
