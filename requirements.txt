@@ -1,6 +1,7 @@
 torch
 tensorflow
 tensorflow-addons
+keras-tuner
 transformers
 tqdm
 numpy

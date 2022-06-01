@@ -1,3 +1,4 @@
+import random
 from config import *
 
 domain = config['domain']
@@ -72,10 +73,105 @@ import data
 from tensorflow_addons.metrics.f_scores import F1Score
 import numpy as np
 import tensorflow as tf
+import keras_tuner as kt
 
-model = LCRRothopPP()
-X, _, y = data.load_embedded_training()
-y = tf.one_hot(y, 2, dtype='int32')
-# print(y)
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit(X, y, epochs=10, batch_size=16)
+def GCEQ(q=0.4):
+
+    @tf.function
+    def GCE(y_true, y_pred):
+        # print(y_true, y_pred)
+        # y_true = y_true[y_true == 1]
+        y = y_pred[y_true == 1]
+        # print(y)
+        loss = (1 - (y ** q)) / q
+        # print(loss)
+        return loss
+    return GCE
+
+X_train, cat_train, pol_train = data.load_embedded(data.load_training_data, path=f'{root}/training_embedding')
+# X_val, cat_val, pol_val = data.load_embedded(lambda: data.load_semeval(2015, 'val', 'single'), f'{root}/val_single_embedding')
+X_test, cat_test, pol_test = data.load_embedded(data.load_semeval, year=2015, data_type='test', label_type='multi')
+pol_train = tf.one_hot(pol_train, 2, dtype='int32')
+# pol_val = tf.one_hot(pol_val, 2, dtype='int32')
+pol_test = tf.one_hot(pol_test, 2, dtype='int32')
+cat_train = tf.one_hot(cat_train, 3, dtype='int32')
+# cat_val = tf.one_hot(cat_val, 3, dtype='int32')
+cat_test = tf.one_hot(cat_test, 3, dtype='int32')
+
+y_train = {'cat': cat_train, 'pol': pol_train}
+# y_val = {'cat': cat_val, 'pol': pol_val}
+y_test = {'cat': cat_test, 'pol': pol_test}
+
+f1_pol = F1Score(num_classes=2, average='macro', name='f1')
+f1_cat = F1Score(num_classes=3, average='macro', name='f1')
+
+# model = LCRRothopPP()
+# model.compile(optimizer='adam', loss=GCEQ(.1), metrics={'cat': ['acc', f1_cat], 'pol': ['acc', f1_pol]}, run_eagerly=False)
+# model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=10, batch_size=16)
+
+# model1 = LCRRothopPP()
+# model1.compile(optimizer='adam', loss=GCEQ(.1), metrics={'cat': ['acc', f1_cat], 'pol': ['acc', f1_pol]}, run_eagerly=False)
+# model1.fit(X_train, y_train, validation_split=.2, epochs=10, batch_size=32)
+
+# # # model.evaluate(X_test, y_test, batch_size=16)
+# model1.evaluate(X_test, y_test, batch_size=16)
+
+def build_model(hp):
+    tf.random.set_seed(0)
+    random.seed(0)
+    np.random.seed(0)
+
+    # Tune regularizers rate for L1 regularizer with values from 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l1_rates = hp.Choice("l1_regularizer", values=[10**-i for i in range(3, 10)])
+
+    # Tune regularizers rate for L2 regularizer with values from 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l2_rates = hp.Choice("l2_regularizer", values=[10**-i for i in range(3, 10)])
+
+    regularizer = tf.keras.regularizers.L1L2(l1=hp_l1_rates, l2=hp_l2_rates)
+
+
+    # Tune learning rate for Adam optimizer with values from 0.01, 0.001 & 0.0001
+    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(2, 5)])
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=hp_learning_rate)
+
+    # Tune dropout layers with values from 0.2 - 0.7 with stepsize of 0.1.
+    drop_rate_1 = hp.Float("dropout_1", 0.2, 0.6, step=0.1)
+    drop_rate_2 = hp.Float("dropout_2", 0.2, 0.6, step=0.1)
+
+    # Tune number of hidden layers for the BiLSTMs
+    hidden_units = hp.Int("hidden_units", min_value=200, max_value=750, step=50)
+    
+    # Tune number of hops
+    hidden_units = hp.Int("hops", min_value=1, max_value=8)
+
+    # Tune qloss
+    q = hp.Float("q", 0, 1, step=0.1)
+
+    f1_pol = F1Score(num_classes=2, average='macro', name='f1')
+    f1_cat = F1Score(num_classes=3, average='macro', name='f1')
+
+    model = LCRRothopPP(hop=3, hierarchy=(False, True), drop_1=drop_rate_1, drop_2=drop_rate_2, hidden_units=hidden_units, regularizer=regularizer)
+    # model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['acc', f1])
+    model.compile(optimizer=optimizer, loss=GCEQ(q), metrics={'cat': ['acc', f1_cat], 'pol': ['acc', f1_pol]})
+
+    return model
+
+stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+
+# Instantiate the tuner
+tuner = kt.Hyperband(build_model,
+                    objective=kt.Objective("val_loss", direction="min"),
+                    max_epochs=20,
+                    factor=10,
+                    hyperband_iterations=5,
+                    directory="logs/hp",
+                    project_name="2015_single",)
+
+tuner.search(X_train, y_train, validation_split=0.2, batch_size=32, callbacks=[stop_early], verbose=1)
+print('test')
+models = tuner.get_best_models(num_models=1)
+# best_model = models[0]
+# best_model.evaluate(X_test, y_test, batch_size=16)
+# print(best_model.left_bilstm)
+

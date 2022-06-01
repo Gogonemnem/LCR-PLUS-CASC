@@ -1,29 +1,33 @@
+from ssl import OP_NO_COMPRESSION
 import xml.etree.ElementTree as ET
 
 def semeval_to_csv(f_in: str, f_out: str, multi=True):
     root = ET.parse(f_in).getroot()
+    cntr = -2
 
     with open(f_out, 'w', encoding='utf-8') as file:
 
         for sentence in root.iter('sentence'):
+            cntr += 1
             sent = sentence.find('text').text
             
-            single = True
+            op_cntr = 0
             categories = dict()
             for opinion in sentence.iter('Opinion'):
-                if single:
-                    single = False
-                elif not multi:
-                    continue
+                op_cntr += 1
                 
-                target = sentiment = opinion.get('target')
+                target = opinion.get('target')
                 if target in categories:
                     categories[target] += 1
                 else:
-                    categories[target] = 0
+                    categories[target] = 1
+
+            if op_cntr > 1 and not multi:
+                continue
                         
             for opinion in sentence.iter('Opinion'):
-                target = sentiment = opinion.get('target')
+                cntr += 1
+                target = opinion.get('target')
                 if categories[target] > 1:
                     continue
                 
@@ -56,10 +60,21 @@ def semeval_to_csv(f_in: str, f_out: str, multi=True):
                 if start == end == 0: 
                     continue
 
-                sentence = f'{sent[:start]} [PAD] {sent[start:end]} [PAD] {sent[end:]}'
-                line = f'{category} {polarity} {sentence} \n'
+                sentence = f'{sent[:start]} [SEP] {sent[start:end]} [SEP] {sent[end:]}'
+                line = f"{str(cntr).ljust(4, ' ')}\t{category}\t{polarity}\t{sentence}\n"
                 file.write(line)
                 # writer.writerow({"context_left": context_left, "target": sent[start:end], "context_right": context_right, "polarity": polarity})
+        file.write(str(cntr))
 
 if __name__ ==  "__main__":
-    semeval_to_csv('ABSA15_Restaurants_Test.xml' , 'test.txt')
+    # semeval_to_csv('ABSA16_Restaurants_Train_SB1_v2.xml' , 'val_single.txt', multi=False)
+    # semeval_to_csv('ABSA16_Restaurants_Train_SB1_v2.xml' , 'val_multi.txt', multi=True)
+
+    # semeval_to_csv('EN_REST_SB1_TEST.xml.gold' , 'test_single.txt', multi=False)
+    # semeval_to_csv('EN_REST_SB1_TEST.xml.gold' , 'test_multi.txt', multi=True)
+
+    semeval_to_csv('ABSA-15_Restaurants_Train_Final.xml' , 'val_single.txt', multi=False)
+    semeval_to_csv('ABSA-15_Restaurants_Train_Final.xml' , 'val_multi.txt', multi=True)
+
+    semeval_to_csv('ABSA15_Restaurants_Test.xml' , 'test_single.txt', multi=False)
+    semeval_to_csv('ABSA15_Restaurants_Test.xml' , 'test_multi.txt', multi=True)

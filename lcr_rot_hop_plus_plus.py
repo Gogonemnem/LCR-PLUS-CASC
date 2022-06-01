@@ -39,7 +39,14 @@ class LCRRothopPP(tf.keras.Model):
         self.average_pooling = AdaptiveAveragePooling1D(1)
 
         # 'MLP' layer
-        self.probabilities = tf.keras.layers.Dense(2,
+        self.sentiment = tf.keras.layers.Dense(2,
+            tf.keras.layers.Activation('softmax'),
+            bias_initializer='zeros',
+            kernel_regularizer=regularizer,
+            bias_regularizer=regularizer
+        )
+
+        self.category = tf.keras.layers.Dense(3,
             tf.keras.layers.Activation('softmax'),
             bias_initializer='zeros',
             kernel_regularizer=regularizer,
@@ -128,7 +135,7 @@ class LCRRothopPP(tf.keras.Model):
         # Separate inputs: LCR
         # input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
         
-        input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
+        # input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
         input_left = inputs[:, 1:left_max_length+1]
         input_target = inputs[:, left_max_length+2:left_max_length+target_max_length+2]
         input_right = inputs[:, left_max_length+target_max_length+3:left_max_length+target_max_length+right_max_length+3]
@@ -169,8 +176,10 @@ class LCRRothopPP(tf.keras.Model):
                       representation_target_right, representation_right], axis=1)
         v = self.drop_output(v)
 
-        pred = self.probabilities(v)
-        return pred
+        pol = self.sentiment(v)
+        cat = self.category(v)
+        
+        return {'cat': cat, 'pol': pol}
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
         """Applies the attention layer described by in the paper"""

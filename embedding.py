@@ -3,6 +3,7 @@ import torch
 
 from config import *
 
+device = config['device']
 domain = config['domain']
 bert_type = bert_mapper[domain]
 
@@ -12,16 +13,16 @@ bert_type = bert_mapper[domain]
 # # print(torch.where(attention_mask, tok['attention_mask'], 0))
 
 def embed_separated(tokens):
-    bert = BertModel.from_pretrained(bert_type, output_hidden_states=True)
+    bert = BertModel.from_pretrained(bert_type, output_hidden_states=True).to(device)
 
     bidden_states = bert(**tokens)
     mean = torch.mean(torch.stack(bidden_states[2][-4:]), dim=0)
-    return mean.detach().numpy()
+    return mean.cpu().detach().numpy()
 
 def tokenize_separated(separated_sentence):
     tokenizer = AutoTokenizer.from_pretrained(bert_type)
     tok = tokenizer(separated_sentence,
-                    return_tensors='pt',)
+                    return_tensors='pt',).to(device)
 
     # print(tok)
     # separate left, target, right
@@ -32,7 +33,7 @@ def tokenize_separated(separated_sentence):
     # Add padding
     left_padding = left_max_length-target_start+1
     if left_padding > 0:
-        padding = torch.zeros(1, left_padding).int()
+        padding = torch.zeros(1, left_padding).int().to(device)
         tok['input_ids'] = torch.cat((tok['input_ids'][:, :1], padding, tok['input_ids'][:, 1:]), dim=1)
         tok['token_type_ids'] = torch.cat((tok['token_type_ids'][:, :1], padding, tok['token_type_ids'][:, 1:]), dim=1)
         tok['attention_mask'] = torch.cat((tok['attention_mask'][:, :1], padding, tok['attention_mask'][:, 1:]), dim=1)
@@ -47,7 +48,7 @@ def tokenize_separated(separated_sentence):
     target_padding = target_max_length-(target_end-target_start)+1
 
     if target_padding > 0:
-        padding = torch.zeros(1, target_padding).int()
+        padding = torch.zeros(1, target_padding).int().to(device)
         tok['input_ids'] = torch.cat((tok['input_ids'][:, :target_start+1], padding, tok['input_ids'][:, target_start+1:]), dim=1)
         tok['token_type_ids'] = torch.cat((tok['token_type_ids'][:, :target_start+1], padding+1, tok['token_type_ids'][:, target_start+1:]), dim=1)
         tok['attention_mask'] = torch.cat((tok['attention_mask'][:, :target_start+1], padding, tok['attention_mask'][:, target_start+1:]), dim=1)
@@ -63,7 +64,7 @@ def tokenize_separated(separated_sentence):
 
     # print(tok)
     if right_padding > 0:
-        padding = torch.zeros(1, right_padding).int()
+        padding = torch.zeros(1, right_padding).int().to(device)
         tok['input_ids'] = torch.cat((tok['input_ids'][:, :-1], padding, tok['input_ids'][:, -1:]), dim=1)
         tok['token_type_ids'] = torch.cat((tok['token_type_ids'][:, :-1], padding, tok['token_type_ids'][:, -1:]), dim=1)
         tok['attention_mask'] = torch.cat((tok['attention_mask'][:, :-1], padding, tok['attention_mask'][:, -1:]), dim=1)
