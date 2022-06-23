@@ -260,7 +260,8 @@
 \usepackage{varioref}         % Refs with page no
 
 
-% \usepackage{natbib}           % Use Natbib (Harvard) style for the refs
+%% ----------------------------------------------------------------
+% 
 
 \usepackage{eurosym}
 
@@ -567,6 +568,7 @@
   \btypeout{\bibname}
   \@mainmatterfalse}
 \endinput
+
 
 %% ----------------------------------------------------------------
 %% EOF
