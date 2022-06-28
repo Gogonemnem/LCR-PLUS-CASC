@@ -44,7 +44,7 @@
 \maketitle
 
 \begin{abstract}
-    to be written..
+    Aspect-Based Sentiment Analysis (ABSA) mainly aims to extract all aspects of a product or service mentioned in a review to classify the aspect category, and classify the sentiment for each aspect. Most existing methods rely on single-task and supervised approaches. However, categorizing aspects and predicting sentiment are not independent tasks. Furthermore, obtaining lots of labeled data for supervised learning models might be difficult or expensive. The recent model Context-aware Aspect category and Sentiment Classification (CASC) \textcite{Kumar2021CASC} tackles this issue by detecting aspect categories and classifying sentiment simultaneously using a weakly-supervised approach. Yet, the CASC model employs a simple neural network which does not exploit any other information. This paper proposes a extension to this model, called Left-Center-Right+CASC (LCR+CASC), by employing a sophisticated neural model which exploits information about location of the explicit aspect expression. Besides aspect categorization and sentiment classification, this model can also extract target expressions from a sentence. This paper conducts two experiments: with and without extracting target expressions.
 \end{abstract}
 
 \tableofcontents
@@ -84,9 +84,9 @@ The authors of CASC used a simple linear layer in the third step. Therefore, swa
 As mentioned above, ABSA is a helpful tool for both businesses and customers. With the help of unsupervised models, businesses do not have to create a large division of their staff to manually go through their reviews. With unsupervised multi-task ABSA models being relatively unexplored, we propose a novel model which we compare against unsupervised models. Second, the model extends the first model to exploit the positional information of the target by replacing the simple model in the three step with a modified LCR-Rot-hop++ model. Comparisons are made using the SemEval dataset challenges \parencite{Pontiki2015SemEval, Pontiki2016SemEval}. In short, our main contributions can be summarized as follows:
 
 \begin{itemize}
-    \item We extend CASC by extracting aspect terms during the second step. That implies the model is able to perform the ATE task indirectly besides the ACD and ASC tasks.
     \item We adapt and compare the CASC model in step three. The linear layer gets replaced by the sophisticated LCR-Rot-hop++ model. Therefore, positional information gets exploited unlike in the simple linear layer.
     \item We explore the performance effects of LCR-Rot-hop++ for the ACD task. The model is originally performed for ASC only. Therefore, inter-dependent information between ACD and ASC are exploited by employing multi-task learning.
+    \item We extend CASC by extracting aspect terms during the second step. That implies the model is able to perform the ATE task indirectly besides the ACD and ASC tasks.
 \end{itemize}
 
 The implementation is based on code provided by \textcite{Kumar2021CASC}. It uses both the PyTorch and TensorFlow frameworks. Both frameworks are very popular amongst researchers and businesses for implementing their neural network models. The source code for this paper can be found at \url{https://github.com/Gogonemnem/BSc2-thesis-ba-qm}.
@@ -141,41 +141,19 @@ Early studies in unsupervised learning that jointly extract aspect and sentiment
 Recent studies propose weakly-supervised methods for the compound task.
 \textcite{Zhuang2020JASA} introduce Joint Aspect-Sentiment Analysis (JASA) which extends the ABAE model to learn aspect/sentiment representations. Furthermore, they make use of multi-task learning by letting the aspect and sentiment representations interact. Therefore, aspect-specific opinion (such as delicious for food) are learned. \textcite{Huang2020JASen} propose the Joint Aspect Sentiment (JASen) model. First, the model learns joint topic embeddings while encouraging topic distinctiveness. Then, neural layers pre- and self-train by embedding-based predictions which generalize the word-level discriminative information on unlabeled data. 
 
-Most recently, \textcite{Kumar2021CASC} propose a different method. The Context-aware Aspect and Sentiment Classification (CASC) model turns unlabeled data into noisy labeled data. After that, neural models are trained on said labeled data. The process of turning unlabeled data to labeled data is only weakly-supervised and requires a small amount of seed words per aspect/sentiment category, which turns into a full-fledged vocabulary list. 
+Most recently, \textcite{Kumar2021CASC} propose a different method. The Context-aware Aspect category and Sentiment Classification (CASC) model turns unlabeled data into noisy labeled data. After that, neural models are trained on said labeled data. The process of turning unlabeled data to labeled data is only weakly-supervised and requires a small amount of seed words per aspect/sentiment category, which turns into a full-fledged vocabulary list. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Data} \label{chap:data}
 This chapter presents the data used for this research. \cref{sec:evaluation_data} presents the dataset used for evaluating the model and comparing to other approaches. Furthermore, additional pre-processing steps are explained. Then, \cref{sec:training_data} presents the dataset which is used for training the neural model.
 
+\section{Training dataset} \label{sec:training_data}
+For our training dataset, we use the Yelp dataset challenge prepared by \textcite{Huang2020JASen} consisting of 17,027 unlabeled review sentences. The original dataset \parencite{Tang2016Yelp} contains many more data attributes. However, only the review text is extracted without any further modification. This dataset is chosen as it resides in the restaurant domain just like our evaluation data. Furthermore, this dataset is much larger compared to the SemEval dataset. While it does not include aspect-level information, it will not be needed due to the unsupervised nature of the model.Furthermore, this dataset has been used to post-train the Domain Knowledge BERT \parencite{Xu2019DKBERT}, besides being our training dataset.
+
 \section{Evaluation dataset} \label{sec:evaluation_data}
-The datasets used for validation the are the SemEval 2015 and SemEval 2016 datasets \parencite{Pontiki2015SemEval, Pontiki2016SemEval}. Specifically, our analysis focuses on restaurant reviews. Each review consists of one or more sentences, and each sentence contains the sentiment on one or more aspects. The sentiment can either be positive, neutral, or negative. In our research we focus evaluating on explicit aspects, which means that the aspect is present in the sentence. 
-LATER VERSIONS INCLUDE A TABLE WITH STATISTICS %!!!!!!!! Show data.... How many removed
-Figure \ref{fig:example_semeval} shows an example sentence from the SemEval 2016 dataset in the XML markup language. This example further illustrates that sentences may contain multiple aspects with different sentiment polarities.
+The datasets used for validation the are the SemEval 2015 and SemEval 2016 datasets \parencite{Pontiki2015SemEval, Pontiki2016SemEval}. Specifically, our analysis focuses on restaurant reviews. Each review consists of one or more sentences, and each sentence contains the sentiment on one or more aspects. The sentiment can either be positive, neutral, or negative. In our research we focus evaluating on explicit aspects, which means that the aspect is present in the sentence. Figure \ref{fig:example_semeval} shows an example sentence from the SemEval 2016 dataset in the XML markup language. This example further illustrates that sentences may contain multiple aspects with different sentiment polarities. Here, a reviewer provides the food and ambience aspects, and has a more positive view regarding the food but not towards the interior.
 % Table \ref{describeData} gives the descriptive statistics of the SemEval 2015 and the SemEval 2016 data sets. One can notice that there are relatively few neutral reviews. Furthermore, in most data the positive class is the majority class, except for the test data of the SemEval 2015 data set. 
-The SemEval 2016 dataset contains the SemEval 2015 dataset and is considerably larger. 
-
-\begin{table}[htbp]
-\centering
-\caption{Descriptive statistics of the Yelp, SemEval 2015 and SemEval 2016 datasets.}
-\label{tab:data}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{\extracolsep{4pt}}llllllllllll@{}}
-\hline
-Dataset                            & \multicolumn{2}{c}{Positive} & \multicolumn{2}{c}{Negative} & \multicolumn{2}{c}{Food} & \multicolumn{2}{c}{Place} & \multicolumn{2}{c}{Service} & Total \\ \cline{2-3} \cline{4-5} \cline{6-7} \cline{8-9} \cline{10-11} \cline{12-12}  
-                                   & Freq.         & \%           & Freq.         & \%           & Freq.       & \%         & Freq.        & \%         & Freq.         & \%          & Freq. \\ \hline
-Yelp CASC                          & 1543          & 69\%         & 706           & 31\%         & 881         & 39\%       & 781          & 35\%       & 587           & 26\%        & 2249  \\
-Yelp Max                           & 1744          & 74\%         & 601           & 26\%         & 689         & 29\%       & 920          & 39\%       & 736           & 31\%        & 2345  \\
-SemEval 2015                       & 82            & 46\%         & 96            & 54\%         & 83          & 47\%       & 55           & 31\%       & 40            & 22\%        & 178   \\
-SemEval 2016                       & 159           & 78\%         & 46            & 22\%         & 88          & 43\%       & 73           & 36\%       & 44            & 21\%        & 205   \\
-SemEval 2015 Single label   - Gold & 127           & 59\%         & 90            & 41\%         & 106         & 49\%       & 66           & 30\%       & 45            & 21\%        & 217   \\
-SemEval 2015 Multi label   - Gold  & 298           & 64\%         & 166           & 36\%         & 250         & 54\%       & 115          & 25\%       & 99            & 21\%        & 464   \\
-SemEval 2016 Single label   - Gold & 194           & 80\%         & 48            & 20\%         & 115         & 48\%       & 82           & 34\%       & 45            & 19\%        & 242   \\
-SemEval 2016 Multi label   - Gold  & 450           & 81\%         & 104           & 19\%         & 310         & 56\%       & 139          & 25\%       & 105           & 19\%        & 554   \\ \hline
-\end{tabular}%
-}
-\end{table}
-
-Similarly to \textcite{Huang2020JASen, Kumar2021CASC}, neutral sentiment polarities are ignored. Moreover, aspect categories are more general than the original SemEval dataset and only contain the categories: food, place and service. Furthermore, the authors removed sentences containing multiple aspects. We also remove those as our model can only extract one aspect per sequence. However, we keep sentences with multiple aspects for an ablation study. Another difference is that sentences with implicit targets are not considered in this study.
+The SemEval 2016 dataset contains the SemEval 2015 dataset and is considerably larger. \cref{tab:data} includes the full datasets without skipping data on the first two rows.
 
 \begin{figure}[htbp]
     \centering
@@ -184,8 +162,28 @@ Similarly to \textcite{Huang2020JASen, Kumar2021CASC}, neutral sentiment polarit
     \label{fig:example_semeval}
 \end{figure}
 
-\section{Training dataset} \label{sec:training_data}
-For our training dataset, we use the Yelp dataset challenge prepared by \textcite{Huang2020JASen} consisting of 17,027 unlabeled review sentences. The original dataset \parencite{Tang2016Yelp} contains many more data attributes. However, only the review text is extracted without any further modification. This dataset is chosen as it resides in the restaurant domain just like our evaluation data. Furthermore, this dataset is much larger compared to the SemEval dataset. While it does not include aspect-level information, it will not be needed due to the unsupervised nature of the model.
+\begin{table}[htbp]
+\centering
+\caption{Descriptive statistics of the SemEval 2015 and SemEval 2016 datasets.}
+\label{tab:data}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{\extracolsep{4pt}}llllllllllll@{}}
+\hline
+Dataset                            & \multicolumn{2}{c}{Positive} & \multicolumn{2}{c}{Negative} & \multicolumn{2}{c}{Food} & \multicolumn{2}{c}{Place} & \multicolumn{2}{c}{Service} & Total \\ \cline{2-3} \cline{4-5} \cline{6-7} \cline{8-9} \cline{10-11} \cline{12-12}  
+                                   & Freq.         & \%           & Freq.         & \%           & Freq.       & \%         & Freq.        & \%         & Freq.         & \%          & Freq. \\ \hline
+SemEval 2015 - Full               & 454           & 54\%         & 346           & 41\%         & 365         & 43\%       & 305          & 36\%       & 175           & 21\%        & 845   \\
+SemEval 2016 - Full                & 611           & 71\%         & 204           & 24\%         & 429         & 50\%       & 275          & 32\%       & 155           & 18\%        & 859   \\ 
+SemEval 2015 Single label   - Gold & 127           & 59\%         & 90            & 41\%         & 106         & 49\%       & 66           & 30\%       & 45            & 21\%        & 217   \\
+SemEval 2015 Multi label   - Gold  & 298           & 64\%         & 166           & 36\%         & 250         & 54\%       & 115          & 25\%       & 99            & 21\%        & 464   \\
+SemEval 2016 Single label   - Gold & 194           & 80\%         & 48            & 20\%         & 115         & 48\%       & 82           & 34\%       & 45            & 19\%        & 242   \\
+SemEval 2016 Multi label   - Gold  & 450           & 81\%         & 104           & 19\%         & 310         & 56\%       & 139          & 25\%       & 105           & 19\%        & 554   \\ \hline
+\end{tabular}%
+}
+\end{table}
+
+First, we remove aspects that belong to multiple aspect categories, as our model is not able to handle the situation. Similar to \textcite{Huang2020JASen, Kumar2021CASC}, neutral sentiment polarities are ignored. Moreover, aspect categories are more general than the original SemEval dataset and only contain the categories: food, place and service. Thus, \textcite{Kumar2021CASC} merged the food and drink SemEval categories into the food category, and the ambiance and location SemEval categories to place. Furthermore, the authors removed sentences containing multiple aspects. For one experiment, we also remove those sentences as our model can only extract one aspect per sequence. However, we keep sentences with multiple aspects for the second experiment, where we skip the aspect target extraction step. Another difference, compared to \textcite{Kumar2021CASC}, is that sentences with implicit targets are not considered in this study.
+
+\cref{tab:data} also shows the processed subsets of the SemEval datasets. The datasets that consider multi-labeled data shrink around 40\% in size, where as the singly-labeled data is less than 30\% the original size. Removing aspects with multiple categories shrinks the datasets around 15\%. On the other hand, skipping neutral sentiment polarities shrinks the datasets about 5\% more. Then, there are a lot of implicit datapoints in the datasets as an additional 25\% get removed. Last, removing sentences with multiple targets removes most of the data as more than an additional 50\% is removed from the multi-labeled dataset to the singly-labeled dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Methodology} \label{chap:methodology}
@@ -195,18 +193,20 @@ This chapter explains the models used in this research. First, \cref{sec:formula
 \section{Task Formulation} \label{sec:formulation} % A BIT SHORT BUT WHAT DO I ADD AGAIN?
 We formulate the approach as a single-label multi-class classification problem, meaning that the output can only be one class from multiple classes. Let the input be a corpus $\mathcal{D} = [X_1, X_2, \dots, X_n]$ consisting of $n$ unlabeled review sentences from a domain. Given the set of aspect categories $A$ together with a small list of seed words $L_a$ for each aspect category $a \in A$, and sentiment polarities $S$ along with a small list of seed words $L_s$ for each sentiment polarity $s \in S$, the objective is to predict a pair of $(a, s)$ for a given unseen review sentence.
 
+Because words and letters are difficult to work with, word embeddings are often used. In this study, Domain Knowledge BERT (DK-BERT) \parencite{Xu2019DKBERT} is used. DK-Bert is a post-trained version of BERT \parencite{Devlin2019BERT} that has been trained on domain data, which in this case is the restaurant review data provided by Yelp.
+
 \section{Modified CASC} \label{sec:CASC}
 This section describes the CASC model in detail. It consists of three different stages. In the first step, class vocabularies for aspect and sentiment categories are constructed through contextual embeddings using only seed words. Second, unlabeled data is turned into labeled data in a weakly-supervised manner using overlap scores with the vocabularies from the previous step. Third and last, a simple neural model with a linear layer is implemented to perform ACD and ASC.
 
 \subsection{Class Vocabulary Construction}
 With a small set of seed words $L_a$ corresponding to aspect $a \in A$, we find the set of sentences $X_a \subset \mathcal{D}$ which contain any of the seed words. Afterwards, sentence $X_i \in X_a$ is passed to a post-trained Domain Knowledge BERT Masked Language Model (DK-BERT MLM) to predict words for finding replacement candidates of all tokens in the sentence. DK-BERT MLM outputs replacement probability scores $P_i \in \mathbb{R}^{\lvert X_i \rvert \times \lvert V \rvert}$ with V being the vocabulary set used by DK-BERT. However, only replacement candidates of the tokens in the seed words are considered. Next, those replacement candidates are passed through a filter to get rid of stop words and punctuation. Then, the top $K$ words are selected as replacement candidates $R_i$ based on their probability scores computed by DK-BERT MLM. All replacement candidates $R_i$ for all $X_i \in X_a$ are collected and added to a frequency table corresponding to each $a \in A$. Subsequently, the top $M$ most frequent words for aspect category $a$ are selected to construct the aspect vocabulary set $V_a$. Last, words that appear inside multiple vocabularies are removed in both sets. A similar procedure is used to construct the sentiment vocabularies $V_s$ for all $s \in S$.
 
-The intuition behind these steps is that words within a sentence can be replaced by words that carry a similar contextual meaning. DK-BERT MLM is trained to provide such replacement candidates such that the words outputted will resemble the meanings of the seed words closely. Furthermore, the vocabulary sets are disjoint sets to remove ambiguities across aspect and sentiment classes. The filter, which removes stop words and punctuation, further helps the procedure to minimize the overlap between vocabulary sets.
+The intuition behind these steps is that words within a sentence can be replaced by words that carry a similar contextual meaning. DK-BERT MLM is trained to provide such replacement candidates such that the words outputted will resemble the meanings of the seed words closely. Furthermore, the vocabulary sets are disjoint sets to remove ambiguities across aspect and sentiment classes. The filter, which removes stop words and punctuation, further helps the procedure to minimize the overlap between vocabulary sets. \cref{fig:casc1} shows the visual representation of the steps described above.
 
 \begin{figure}[htbp]
   \centering
   \includesvg[width=0.5\textwidth]{CASC1.svg}
-  \caption{}
+  \caption{The first part of CASC: the class vocabulary contruction.}
   \label{fig:casc1}
 \end{figure}
 
@@ -232,43 +232,47 @@ The vocabularies in the previous step were created with DK-BERT which is post-tr
 
 The normalized score $S'_{ja}$ shows how many standard deviations the original score $S_{ja}$ away from the mean value is. For sentence $X_q$, aspect categories are assigned if the normalized score is above a pre-defined threshold $\lambda$. 
 % \todo{assumption: one or multiple expression terms for aspect categories?} 
-A similar procedure is applied for sentiment categories. With the previous steps completed, a labeled dataset $\mathcal{D}_\mathcal{L} \subset \mathcal{D}$ can be constructed which is a subset of the original corpus.
+A similar procedure is applied for sentiment categories. With the previous steps completed, a labeled dataset $\mathcal{D}_\mathcal{L} \subset \mathcal{D}$ can be constructed which is a subset of the original corpus. \cref{fig:casc2} shows the visual representation of the steps described above.
+
 
 \begin{figure}[htbp]
   \centering
   \includesvg[width=0.5\textwidth]{CASC2.svg}
-  \caption{}
+  \caption{The second part of CASC: noisy labeled data preparation.}
   \label{fig:casc2}
 \end{figure}
 
 %%%% Extensions
 Building on the original CASC model, the aspect term is extracted in this phase. During the aspect label assignment process, each aspect label $a$ gets an aspect term for each sentence $X$. Similar to the overlap scores, aspects are stored in a matrix. When the aspect label is decided, the corresponding aspect term is assigned to the sentence.
 
-There are multiple ways of assigning aspect. The simplest method would be to assign the noun with the highest overlap score. Another approach could be to identify noun chunks \parencite{Honnibal2020Spacy} and select chunks with the highest averaged overlap scores. 
-% \todo{I have not decided what would feasible given the time}
+There are multiple ways of assigning aspect target expressions. The simplest method would be to assign the noun with the highest overlap score. This study investigates this version of ATE. Another approach could be to identify noun chunks \parencite{Honnibal2020Spacy} and select chunks with the highest scores. Noun chunk scores can be computed in various ways. One example is to take the average of the overlap score among all nouns in the noun chunk. 
+
+In short, CASC uses a so-called average score labeler, meaning that overlap scores are computed and averaged over all the nouns in the full sentence. Our model uses a maximum score labeler, which labels sentences based on the aspect target expression. Thus, the labeling is handled by using word that has the highest overlap score in the sentence.
+
 
 % https://stackoverflow.com/questions/44661200/spacy-to-extract-specific-noun-phrase
 
 \subsection{Joint Neural Network for ACD and ASC} % Basically done
 In the original CASC model, the authors used a simple yet effective neural model to classify aspects and sentiment. The authors make use of DK-BERT embeddings and extract the second-to-last hidden layer as embeddings for the tokens in the sentence. Sentences $X_l \in \mathcal{D_\mathcal{L}}$ are represented as $X_l = \left ( [CLS], w_1, \ldots, w_n, [SEP] \right )$, where $w_i$ represents a word in a sentence for $0 \leq i \leq n$. BERT considers the [CLS] and [SEP] as special tokens which denote the start and the end of a sequence, respectively. Therefore, the embeddings of the sequence is $H \in \mathbb{R}^{(n+2) \times d}$ for each token in $X_l$, where $d$ is the embedding size of the embedding layer, or in this case, the number of hidden layers in BERT. Afterwards, the global sentence representation $T \in \mathbb{R}^{1 \times d}$ is constructed by averaging embeddings from the non-special tokens: 
 \begin{equation} 
-    \frac{1}{n} \sum_{i=1}^{n}H_i. 
+    T = \frac{1}{n} \sum_{i=1}^{n}H_i. 
 \end{equation}
 Thus, the hidden representations of [CLS] and [SEP] are ignored. Last, the sentence representation $T$ is passed to two different linear layers for ACD and ASC: 
 \begin{align}
     \hat{a} & = SoftMax(T \times W_a + b_a), \\
     \hat{s} & = SoftMax(T \times W_s + b_s),
 \end{align}
-where $W_a \in \mathbb{R}^{d \times \lvert A \rvert}$ and $W_s \in \mathbb{R}^{d \times \lvert S \rvert}$ are trainable weight matrices, and $b_a$ and $b_s$ are the trainable bias vectors. Last, $\hat{a}$ and  $\hat{s}$ denote the probabilities for the aspect category and sentiment polarity. 
+where $W_a \in \mathbb{R}^{d \times \lvert A \rvert}$ and $W_s \in \mathbb{R}^{d \times \lvert S \rvert}$ are trainable weight matrices, and $b_a$ and $b_s$ are the trainable bias vectors. Last, $\hat{a}$ and  $\hat{s}$ denote the probabilities for the aspect category and sentiment polarity. \cref{fig:simple_neural} shows the visual representation of the steps described above.
+  
 
 \begin{figure}[htbp]
   \centering
   \includesvg[width=0.45\textwidth]{Simple Neural.svg}
-  \caption{}
+  \caption{The third part of CASC: the joint neural network for ACD and ASC.}
   \label{fig:simple_neural}
 \end{figure}
 
-However, the aspect term positions, extracted during the previous phase, are yet to be exploited in this neural model. Therefore, we suggest to inject the double task LCR-Rot-hop++ model instead of applying the neural model described above. 
+However, the aspect term positions, extracted during the previous phase, are yet to be exploited in this neural model. Therefore, we suggest to inject the double task LCR-Rot-hop++ model instead of applying the neural model described above. We suggest the double task variant of the model to exploit inter-dependent information between the tasks described in an earlier section.
 
 \section{Double Task LCR-Rot-hop++} \label{sec:LCR-Rot}
 This section describes the double task LCR-Rot-hop++ model \parencite{Trusca2020HAABSA++} in detail. This sophisticated model exploits positional information by using three Bidirectional Long Short Term Memory (BiLSTM) layers. Furthermore, two types of attention mechanisms are implemented in a iterative manner to exploit local and global contexts. This model replaces the third step of of the CASC model described in \cref{sec:CASC}. The LCR-Rot model was originally solely built for ASC. Therefore, a slight modification will be made to also handle ACD tasks.
@@ -321,6 +325,8 @@ Last, all four representation vectors are horizontally concatenated and feed a d
 \end{figure}
 
 \section{Experimental Setup} \label{sec:setup}
+This section discusses the setup of the neural model in our model. First, \cref{sec:training} presents how the neural model will optimize its performance with its loss function. Then, \cref{sec:hypertune} discusses the hyperparameters and show how they are optimized.
+
 \subsection{Training Procedure} \label{sec:training}
 Each model is trained in a similar fashion to \textcite{Kumar2021CASC}. The model minimizes a General Cross Entropy (GCE) function, which exploits both the Categorical Cross Entropy (CCE) and Mean Absolute Error (MAE). % cite zhang et al. Generalized cross entropy loss for training deep neural networks with noisy labels
 CCE converges quickly but overfits to noise, while MAE is robust to noise but converges slowly. It has been shown that GCE performs better than CCE \parencite{Kumar2021CASC}. This makes intuitive sense as the dataset is semi-automatically labeled which introduces noise while annotating. In short, GCE de-emphasizes difficult samples compared to CCE but accentuate them more compared to MAE during training. Therefore, the aspect category classification loss $\mathcal{L}_a$ and sentiment polarity classification loss $\mathcal{L}_s$ are defined as follows:
@@ -344,9 +350,13 @@ Furthermore, $L_1$ and $L_2$ regularizations are applied to avoid overfitting. T
 
 \noindent where $\lambda_1$ and $\lambda_2$ are the weights of the $L_1$ and $L_2$ regularization terms, respectively, and $\Theta$ is the parameter set which contains $\{W^c, W^t, W^p, b^c, b^t, b^p\}$ and the BiLSTM parameters.
 
-For loss minimization, weight matrices described above are randomly initialized by a uniform distribution $U(-0.1, 0.1)$ and biases are set to zero. The rest of the parameters are set using the default settings provided by TensorFlow. The algorithm used to minimize the loss is Adam. % cite
-Hyperparameters are tuned by using the Hyperband algorithm. % cite
+For loss minimization, weight matrices described above are randomly initialized by a uniform distribution $U(-0.1, 0.1)$ and biases are set to zero. The rest of the parameters are set using the default settings provided by TensorFlow. The algorithm used to minimize the loss is Adam \parencite{Kingma2017Adam}. % cite
 
+\subsection{Hyperparameter optimization} \label{sec:hypertune}
+As mentioned earlier, the neural model contains some hyperparameters. The hyperparameters are optimized by the Hyperband algorithm \parencite{Li2018Hyperband}. % cite
+Hyperparameters that are not involved in the neural model and not discussed in the paragraph are taken from the CASC \parencite{Kumar2021CASC} paper.
+
+We optimize eight hyperparameters. The first two hyperparameters are the weights for both regularizers. Each rate can range from 0.001 to $10^{-9}$ and uses nonlinear steps of multiples of 10. Therefore, each rate has the form of $10^{i}$, where $i$ is an integer. The third hyperparameter is the learning rate for Adam, which can either be 0.01, 0.001, or 0.0001. The fourth hyperparameter is the number of hops performed in the LCR-Rot-hop++ model, which can go up until eight hops. Then, the fifth hyperparameter is the $q$ in the GCE, which was checked from zero to one with a stepsize of 0.1. Then, the sixth hyperparameter is the number of hidden units in the BiLSTM layers which ranges from  400 to 1500 with a stepsize of 100. Similar to \textcite{Trusca2020HAABSA++}, we add two dropout layers at the input and at the just before the output. These dropout rates go from 0.2 to 0.6 with a stepsize of 0.1.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -365,6 +375,7 @@ Hyperparameters are tuned by using the Hyperband algorithm. % cite
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Results} \label{chap:results}
+This chapter presents the results obtained from the proposed models. First, \cref{sec:baselines} discusses the evaluation measures and shows list of baseline models that are used for comparison. Then, we present the sub-datasets which need to be constructed in \cref{sec:used_data}. Afterwards, results of our methods and baseline models are given in \cref{sec:performance} in the form of two experiments.
 
 \section{Performance Measures \& Baseline Models} \label{sec:baselines}
 We evaluate the predictive performance of the models using out-of-sample accuracy and macro F1 scores. Both the aspect category classification and sentiment classification performance are evaluated. This paper mainly compares the novel model against versions of the CASC model. This is because the CASC model has shown to outperform previous models by quite a significant amount. Furthermore, at the time of writing, the CASC model is new and has seen no competition yet. The following models are compared:
@@ -380,25 +391,31 @@ We evaluate the predictive performance of the models using out-of-sample accurac
     \item \ [MODEL] + SEP (GOLD): These types of models use the gold annotations provided by the SemEval datasets, instead of extracting the aspect target expressions using the labeler described in \cref{sec:labeler}. Note that the noisy training data is still generated using the maximum score together with the aspect target extraction. This way, we can isolate whether the score calculator or the neural model is driving factor of the performance results (of the testing data).
 \end{itemize}
 
+\section{Processed Data} \label{sec:used_data}
+The data that is used for training and evaluating are subsets of the original datasets. The Yelp dataset is not yet labeled and the resulting sub-datasets may differ per score calculator. Furthermore, the SemEval dataset is also smaller as the aspect has to be extracted which uses the score calculator. \cref{tab:used_data} shows the datasets which are used for training and evaluation which were motivated before. Note that the Yelp dataset differentiates between the average and max score labeler, but not for the SemEval datasets. This is because CASC does not require to perform ATE with the score calculator, thus making use of the full dataset shown in \cref{tab:data}.
+
+\begin{table}[htbp]
+\centering
+\caption{Descriptive statistics of the Yelp, SemEval 2015 and SemEval 2016 sub-datasets.}
+\label{tab:used_data}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{\extracolsep{4pt}}llllllllllll@{}}
+\hline
+Dataset                            & \multicolumn{2}{c}{Positive} & \multicolumn{2}{c}{Negative} & \multicolumn{2}{c}{Food} & \multicolumn{2}{c}{Place} & \multicolumn{2}{c}{Service} & Total \\ \cline{2-3} \cline{4-5} \cline{6-7} \cline{8-9} \cline{10-11} \cline{12-12}  
+                                  & Freq.         & \%           & Freq.         & \%           & Freq.       & \%         & Freq.        & \%         & Freq.         & \%          & Freq. \\ \hline
+Yelp CASC                          & 1543          & 69\%         & 706           & 31\%         & 881         & 39\%       & 781          & 35\%       & 587           & 26\%        & 2249  \\
+Yelp Max                           & 1744          & 74\%         & 601           & 26\%         & 689         & 29\%       & 920          & 39\%       & 736           & 31\%        & 2345  \\
+SemEval 2015                       & 82            & 46\%         & 96            & 54\%         & 83          & 47\%       & 55           & 31\%       & 40            & 22\%        & 178   \\
+SemEval 2016                       & 159           & 78\%         & 46            & 22\%         & 88          & 43\%       & 73           & 36\%       & 44            & 21\%        & 205   \\ \hline
+\end{tabular}%
+}
+\end{table}
 
 % \section{Ablation Models} \label{sec:ablation_models}
 % The following set of models are variations of the \modelname model or the CASC model. They are also used in the ablation study in \cref{sec:ablation_study}. Therefore, the models presented are simplified models of the \modelname model that remove or replace complex parts into simpler ones. 
 
-
 \section{Performance Results} \label{sec:performance}
 In this section, we compare the different models described in \cref{sec:baselines} and compare them to each other. First, we use the test dataset without any gold annotations, whereas the next part of the analysis uses test data where sentences has been split into the correct contexts as the gold targets are given. Thus, the first part uses the labeler described in \cref{sec:labeler} to extract target expressions in a unsupervised manner.
-
-We notice that CASC beats all other methods when it comes to aspect classification. Furthermore, it performs relatively well for sentiment classification. CASC beats LCR+CASC by a significant margin at aspect classification, whereas the performance comparison in sentiment classification is more ambiguous. CASC seems to struggle with the 2016 dataset at sentiment classification, while LCR+CASC has the worst performance for the 2015 data at sentiment classification compared to all neural models.
-
-To understand the effectiveness of the different novel components, we perform an ablation study. With different components added to or deleted from methods, we can deduce the importance of each component and how they interact with others. We remove or add components as explained in \cref{sec:baselines} and we show their performances in \cref{tab:aspect-perf,tab:sentiment-perf} for aspect classification and for sentiment detection, respectively.
-
-First, using the maximum score labeler instead of the average score labeler is detrimental to CASC's performance. There are two models which show the effect clearly. Omitting the neural model completely (LCR+CASC-DL) causes a large drop in performance. The performance drop is also larger than the CASC model without the neural network using the average labeler scorer presented in \textcite{Kumar2021CASC}. Furthermore, replacing the average labeler to the maximum score labeler in the CASC model causes the model to lose over 20 percentage points in the aspect classification task. However, it seems that the neural network is able to find the sentiment quite well by beating CASC for both datasets. This indicates that sentiment prediction is more robust than aspect class prediction. This might also be because the test data only includes sequences in which only one sentiment is being expressed.
-
-Second, CASC with the aspect target extraction extension produces good results even though the maximum score labeler produces poor results. However, it performs worse than CASC in most situations since it only beat CASC in the 2016 dataset for the sentiment classification task. This result and the previous result indicate that the neural model is able to pick up some patterns if the location of the aspect is provided. Even though the target location information might not be perfect, the performance seems to be close to the original CASC's performance.
-
-Third, the left and right context representations in the LCR+CASC model have a small but positive contribution for both aspect and sentiment classification. The LCR+CASC-CON sometimes even beats the full model in some of the cases. One possible reason could be that the two representations contain most relevant information of the contexts. The fluctuation of producing better results could be the consequence of poor target location information.
-
-Fourth, the separation of neural layers has almost no difference in performance for the aspect classification task. However, the difference for the sentiment classification task in 2016 is a bit larger.
 
 \begin{table}[htbp]
 \centering
@@ -440,17 +457,19 @@ LCR+CASC       & 88.20          & 88.07          & \textbf{94.15} & \textbf{91.8
 % }
 \end{table}
 
-The next part of the analysis uses the gold annotations provided in the datasets. We ought to investigate these data to understand if persuing more complex models is worth studying. As shown by previous results, complex models do not necessarily produce better results. However, the results also show that the maximum score labeler produces poor results, this might indicate that the ATE part of the model has to be improved. By skipping the ATE task for the test data and using the already prepared target expressions, we investigate what the potential of sophisticated methods could be. Furthermore, sentences can now have multiple aspects. Therefore, the analysis is extended to investigate the performance on sentences with multiple aspects rather than single aspects. Note that the training data stays remains unchanged.
+We notice that CASC beats all other methods when it comes to aspect classification. Furthermore, it performs relatively well for sentiment classification. CASC beats LCR+CASC by a significant margin at aspect classification, whereas the performance comparison in sentiment classification is more ambiguous. CASC seems to struggle with the 2016 dataset at sentiment classification, while LCR+CASC has the worst performance for the 2015 data at sentiment classification compared to all neural models.
 
-First, as suspected, the CASC model produces poor results with sentences including multiple aspects. The LCR+CASC model, on the other hand, does not struggle at all when it comes to multi-labeled data. It seems that more sophisticated models perform better at the aspect classification task in all situation. However, simple neural models perform similarly on sentiment classification. On a similar note, CASC performs quite well on the multi-labeled sentiment classification task. Both observations could be explained by how the data is constructed. Reviews are usually biased because everyone with internet acces can post a review. People want to recommend people to or deter people from a place. Therefore, one review most likely has only one sentiment. Furthermore, our data looks at sentences, making the likelihood to have a one sentiment much larger.
+To understand the effectiveness of the different novel components, we perform an ablation study. With different components added to or deleted from methods, we can deduce the importance of each component and how they interact with others. We remove or add components as explained in \cref{sec:baselines} and we show their performances in \cref{tab:aspect-perf,tab:sentiment-perf} for aspect classification and for sentiment detection, respectively.
 
-Second, CASC will produce much better results for sequences with multiple aspects if it could use target expression location information. Even with the simplest form of the information, providing a separation token before and after the target expression, its performance is on par with singly labeled sequences. Furthermore, similar to our earlier result, performance gains from single- to multi-label in the aspect classification task are greater than the gains in the sentiment classification task. Again, this is likely due to sequences including multiple aspects express the same sentiment over multiple aspects.
+First, using the maximum score labeler instead of the average score labeler is detrimental to CASC's performance. There are two ablated CASC models which show the effect clearly. Omitting the neural model completely (LCR+CASC-DL) causes a large drop in performance. The performance drop is also larger than the CASC model without the neural network using the average labeler scorer presented in \textcite{Kumar2021CASC}. Furthermore, replacing the average labeler to the maximum score labeler in the CASC model (CASC+MAX) causes the model to lose over 20 percentage points in the aspect classification task. However, it seems that the neural network is able to find the sentiment quite well by beating CASC for both datasets. This indicates that sentiment prediction is more robust than aspect class prediction. 
 
-% This indicates that labeling by averaging scores across all potential-aspects or potential-nouns is better than labeling the sequence by the maximum score. However, this reasoning is a bit ambiguous as it is not backed up by the previous result. In the previous result, labeling is also done on the maximum score, but performance is always better for aspect classification and quite close for sentiment classification.
+Second, CASC with the aspect target extraction extension (CASC+MAX+ATE) produces good results even though the maximum score labeler produces poor results. However, it performs worse than CASC in most situations since it only beat CASC in the 2016 dataset for the sentiment classification task. This result and the previous result indicate that the neural model is able to pick up some patterns if the location of the aspect is provided. Even though the target location information might not be perfect, the performance seems to be close to the original CASC's performance.
 
-Third, unlike before, removing the left and right context in the last dense layer hurts the model's performance. The difference with before indicates that the left and right contexts only contain useful information when the target expression is correctly given. In particular, the loss in performance is less for aspect classification than for the sentiment classification. Also, the multi-labeled performance deteriorates more than singly-labeled data in aspect classification. Logically, the aspect classification task depends much less on the context directly. It could depend more when multiple aspects are present. The target expression should provide enough information already if the target expression is indeed representative for the corresponding category. Meanwhile, sentiment depends more on context even though context information has been included through the attention layers. 
+Third, the left and right context representations in the LCR+CASC model have a minimal contribution in this experiment. The LCR+CASC-CON sometimes slightly beats the full model in some of the cases. One possible reason could be that the two target representations captured most relevant information of the contexts.
 
-Fourth, unlike before, having separate neural layers per task shows the benefits of solving them in a multi-task manner. The LCR+CASC+ASYNC model performs the best in all but one situation for the aspect classification task. While it got beaten the LCR+CASC model in every situation for the sentiment classification task. This indicates that the neural layers can share relevant information across tasks. However, it seems that some information has been lost on the aspect classification task.
+Fourth, constructing separate neural layers for both subtasks ACD and ASC (LCR\-+CASC\-+ASYNC) has almost no difference in performance for the aspect classification task. However, the difference for the sentiment classification task in 2016 is a bit larger. 
+
+In summary, results are inconclusive for the situation where ATE is also performed for the test data. We suspect that the most likely reason is that the max score labeler together with the ATE branch is not sophisticated enough. In this experiment, CASC performs better than LCR+CASC in most situations.
 
 \begin{table}[htbp]
 \centering
@@ -462,11 +481,11 @@ Fourth, unlike before, having separate neural layers per task shows the benefits
 Aspect                   & \multicolumn{4}{l}{Single}                                        & \multicolumn{4}{l}{Multi}                                         \\ \cline{2-5} \cline{6-9}
                          & 2015           &                & 2016           &                & 2015           &                & 2016           &                \\ \cline{2-3} \cline{4-5}   \cline{6-7} \cline{8-9}
 Model                    & Acc            & Macro-F1       & Acc            & Macro-F1       & Acc            & Macro-F1       & Acc            & Macro-F1       \\ \hline
-CASC+SEP(GOLD)           & 86.18          & 86.18          & 86.36          & 85.96          & 75.00          & 73.93          & 79.06          & 77.00          \\
-CASC+MAX+ATE+SEP(GOLD)   & 84.33          & 83.73          & 89.67          & 88.90          & 85.56          & 85.03          & 85.56          & 84.86          \\
-LCR+CASC-CON+SEP(GOLD)   & 90.78          & 91.27          & 94.21          & 94.80          & 92.03          & 91.80          & 93.14          & 92.97          \\ 
-LCR+CASC+ASYNC+SEP(GOLD) & \textbf{94.47} & \textbf{94.71} & \textbf{95.87} & \textbf{95.17} & \textbf{94.83} & \textbf{94.52} & \textbf{94.77}	& 94.05          \\ 
-LCR+CASC+SEP(GOLD)       & 92.63          & 93.28          & 94.63          & 94.96          & 93.53          & 93.36          & 94.22          & \textbf{94.10} \\ \hline
+CASC+SEP (GOLD)           & 86.18          & 86.18          & 86.36          & 85.96          & 75.00          & 73.93          & 79.06          & 77.00          \\
+CASC+MAX+ATE+SEP (GOLD)   & 84.33          & 83.73          & 89.67          & 88.90          & 85.56          & 85.03          & 85.56          & 84.86          \\
+LCR+CASC-CON+SEP (GOLD)   & 90.78          & 91.27          & 94.21          & 94.80          & 92.03          & 91.80          & 93.14          & 92.97          \\ 
+LCR+CASC+ASYNC+SEP (GOLD) & \textbf{94.47} & \textbf{94.71} & \textbf{95.87} & \textbf{95.17} & \textbf{94.83} & \textbf{94.52} & \textbf{94.77}	& 94.05          \\ 
+LCR+CASC+SEP (GOLD)       & 92.63          & 93.28          & 94.63          & 94.96          & 93.53          & 93.36          & 94.22          & \textbf{94.10} \\ \hline
 \end{tabular}%
 }
 \end{table}
@@ -481,36 +500,49 @@ LCR+CASC+SEP(GOLD)       & 92.63          & 93.28          & 94.63          & 94
 Sentiment                & \multicolumn{4}{l}{Single}                                        & \multicolumn{4}{l}{Multi}                                         \\ \cline{2-5} \cline{6-9}
                          & 2015           &                & 2016           &                & 2015           &                & 2016           &                \\ \hline
 Model                    & Acc            & Macro-F1       & Acc            & Macro-F1       & Acc            & Macro-F1       & Acc            & Macro-F1       \\
-CASC+SEP(GOLD)           & \textbf{92.63} & \textbf{92.53} & 85.95          & 81.37          & 87.28          & \textbf{86.36} & 88.81          & 83.61          \\
-CASC+MAX+ATE+SEP(GOLD)   & 89.40          & 88.99          & 88.43          & 83.31          & 87.50          & 86.13          & 90.07          & 84.24          \\
-LCR+CASC-CON+SEP(GOLD)   & 86.64          & 86.17          & 91.74          & 87.58          & 84.70          & 83.14          & 92.06          & 87.44          \\ 
-LCR+CASC+ASYNC+SEP(GOLD) & 89.40	      & 89.07	       & 91.32	        & 87.40	         & 85.99	      & 84.61	       & 91.88	        & 87.20          \\ 
-LCR+CASC+SEP(GOLD)       & 89.86          & 89.36          & \textbf{93.80} & \textbf{90.33} & \textbf{87.93} & 86.35          & \textbf{92.96} & \textbf{88.33} \\ \hline
+CASC+SEP (GOLD)           & \textbf{92.63} & \textbf{92.53} & 85.95          & 81.37          & 87.28          & \textbf{86.36} & 88.81          & 83.61          \\
+CASC+MAX+ATE+SEP (GOLD)   & 89.40          & 88.99          & 88.43          & 83.31          & 87.50          & 86.13          & 90.07          & 84.24          \\
+LCR+CASC-CON+SEP (GOLD)   & 86.64          & 86.17          & 91.74          & 87.58          & 84.70          & 83.14          & 92.06          & 87.44          \\ 
+LCR+CASC+ASYNC+SEP (GOLD) & 89.40	      & 89.07	       & 91.32	        & 87.40	         & 85.99	      & 84.61	       & 91.88	        & 87.20          \\ 
+LCR+CASC+SEP (GOLD)       & 89.86          & 89.36          & \textbf{93.80} & \textbf{90.33} & \textbf{87.93} & 86.35          & \textbf{92.96} & \textbf{88.33} \\ \hline
 \end{tabular}%
 }
 \end{table}
 
+The next part of the analysis uses the gold annotations provided in the datasets. We ought to investigate these data to understand if pursuing more complex models is worth studying. As shown by previous results, complex models do not necessarily produce better results. However, the results also show that the maximum score labeler produces poor results, this might indicate that the ATE part of the model has to be improved. By skipping the ATE task for the test data and using the already prepared target expressions, we investigate what the potential of sophisticated methods could be. Though, note that sentences in the training data is still separated using the maximum score labeler and remains unchanged. Because we use the gold annotations, sentences in the test data can contain multiple aspects. Therefore, the analysis is extended to investigate the performance on sentences with multiple aspects rather than single aspects.
+
+First, as suspected, the CASC model produces poor results with sentences including multiple aspects. The LCR+CASC model, on the other hand, does not struggle at all when it comes to multi-labeled data. It seems that more sophisticated models perform better at the aspect classification task in all situation. However, simple neural models perform similarly on sentiment classification. On a similar note, CASC performs quite well on the multi-labeled sentiment classification task. Both observations could be explained by how the data is constructed. Reviews are usually biased because everyone with Internet access can post a review. People want to recommend people to or deter people from a place. Therefore, one review most likely has only one sentiment. Furthermore, our data looks at sentences, making the likelihood to have a one sentiment much larger.
+
+Second, CASC produces much better results for sequences with multiple aspects if it could use target expression location information (CASC+MAX+ATE). Even with the simplest form of the information, providing a separation token before and after the target expression, its performance is on par with singly labeled sequences. Furthermore, similar to our earlier result, performance gains from single- to multi-label in the aspect classification task are greater than the gains in the sentiment classification task. Again, this is likely due to sequences including multiple aspects express the same sentiment over multiple aspects.
+
+% This indicates that labeling by averaging scores across all potential-aspects or potential-nouns is better than labeling the sequence by the maximum score. However, this reasoning is a bit ambiguous as it is not backed up by the previous result. In the previous result, labeling is also done on the maximum score, but performance is always better for aspect classification and quite close for sentiment classification.
+
+Third, unlike before, removing the left and right context in the last dense layer (LCR+CASC-CON) hurts the model's performance. The difference with before indicates that the left and right contexts only contain useful information when the target expression is correctly given. In particular, the loss in performance is less for aspect classification than for the sentiment classification. %Also, the multi-labeled performance deteriorates more than singly-labeled data in aspect classification. 
+Logically, the aspect classification task depends much less on the context directly. It could depend more when multiple aspects are present. The target expression should provide enough information already if the target expression is indeed representative for the corresponding category. Meanwhile, sentiment depends more on context even though context information has been included through the attention layers. 
+
+Fourth, unlike before, having separate neural layers per task shows the benefits of solving them in a multi-task manner. The LCR+CASC+ASYNC model performs the best in all but one situation for the aspect classification task. While it got beaten the LCR+CASC model in every situation for the sentiment classification task. This indicates that the neural layers can share relevant information across tasks. However, it seems that some information has been lost on the aspect classification task.
+
+In short, LCR+CASC outperforms CASC is most situations when the aspect target expression is given for test data even with the noisy training labels generated by the max score labeler. Therefore, this result indicates that performance can be improved even more if our model handles the ATE subtask better. Compared to CASC, multi-labeled data sees much improvement as the sophisticated neural model is able to handle multi-labeled data. The promising results mean that more complex neural models combined with CASC are worth investigating. However, it is recommended that any modifications to the first two steps, besides the third step, do not worsen performance. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Concluding Remarks} \label{chap:remarks}
+This chapter provides the main findings with their conclusions in \cref{sec:conclusion}, and discusses the limitations of our model and ideas to improve our approach in \cref{sec:limitation}.
+
 \section{Conclusion} \label{sec:conclusion}
 ABSA mainly aims to classify aspects and sentiment for every aspect in a sentence. Supervised ABSA models have been studied thoroughly but are constrained by the limited availability of training data. Unsupervised and weakly supervised methods have been constructed to overcome this limitation. This way, no labor is required to create labeled datasets, resulting in businesses of all sizes being able to implement these models.
 
 In this study, we overcome this limitation by combining the state-of-the-art weakly-supervised CASC \parencite{Kumar2021CASC} and supervised LCR-Rot-hop++ \parencite{Trusca2020HAABSA++} models to classify aspect categories and sentiment polarity. The models were adapted and modified to work with each other. First, a new scoring method had to be constructed to extract the aspect target expression. Second, the sophisticated LCR-Rot-hop++ has been altered to also solve the ACD task.
 
-The results show that the LCR+CASC model does not perform as well as the CASC model. However, it does see potential. Furthermore, it seems that the LCR+CASC model is able to detect what aspect category a target has. The weakness of the model lies in the ATE part of the model. Labeling and extracting a word with the highest aspect score, rather than labeling the sentence based on the average score, produces poor results. However, the LCR+CASC model does perform quite well if one does have aspect target expression information solely for the testing data. In this case, LCR+CASC beats CASC by a fair amount when it comes to multi-labeled sentences. Moreover, the components of the neural model seem to have an overall positive effect on the performance. Its effect gets better when the correct target expressions are given in the testing data. 
+The results show that the LCR+CASC model does not perform as well as the CASC model. However, it does see potential. Furthermore, it seems that the LCR-Rot-hop++ model can be extended to a joint neural model to solve the ACD and ASC tasks as the LCR+CASC model is able to detect what aspect category a target has. The weakness of the model lies in the ATE part of the model. Labeling and extracting a word with the highest aspect score, rather than labeling the sentence based on the average score, produces poor results.
+
+However, the LCR+CASC model does perform quite well if one does have aspect target expression information solely for the testing data. LCR+CASC is able to outperform CASC in most of the situations if target location is correctly provided in the test data. Specifically, LCR+CASC beats CASC by a fair amount when it comes to multi-labeled sentences. Moreover, the components of the neural model seem to have an overall positive effect on the performance. In this setting, LCR+CASC is still able to generate good results even when its noisy training data is generated using the weak maximum score labeler.
 
 \section{Limitations \& Future Research} \label{sec:limitation}
-Although CASC has seen great results on a different domain than restaurants, the LCR+CASC's performance is not yet known. Not much research has been done on the laptop domain of the SemEval datasets as they usually do not provide any aspect target expressions. As the LCR+CASC model is capable of ATE, it can be tested on that domain. 
+Although CASC has seen great results on a different domain than restaurants, the LCR+CASC's performance on the different domains is not yet known. Not much research has been done on the laptop domain of the SemEval datasets as they usually do not provide any aspect target expressions. As the LCR+CASC model is capable of ATE, it can be tested on that domain. 
 
-Furthermore, results show that the ATE part of in the labeled data preparation step produces poor results. Rather than extracting words that have the highest score in a sentence, one could research the extraction of noun phrases or more advanced scoring methods besides taking averages or maxima.
+Furthermore, results show that the ATE part of in the labeled data preparation step produces poor results. Rather than extracting words that have the highest score in a sentence, one could research the extraction of noun phrases or more advanced scoring methods besides taking averages or maxima. Noun phrases seem promising as it is not as broad as taking the average over the whole sentence, but not too fine-grained as extracting single words.
 
-Last, this paper focused on injecting the LCR-Rot-hop++ model into CASC. The limitation of this model is that this model needs the target location to separate the left and right contexts. Other neural models such as graph based neural networks could be researched and do not need any modification in the score calculator to do ATE.
-
-% \cite{Devlin2019BERT}
-% \cite{Devlin2019BERTold}
-
-% PLEASE LET ME KNOW WHICH OF THESE VERSIONS OF THE REFERENCES YOU PREFER. THERE ARE SOME SUBTLE DIFFERENCES WHICH I DO NOT KNOW WHICH IS BETTER.
+Last, this paper focused on injecting the LCR-Rot-hop++ model into CASC. The limitation of this model is that this model needs the target location to separate the left and right contexts. Other neural models such could be researched and do not need any modification in the score calculator to do ATE.
 
 \backmatter
 \printbibliography
