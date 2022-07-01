@@ -33,14 +33,73 @@ def load_training_data(**kwargs):
     sentences = []
     cats = []
     pols = []
-    with open(f'{root_path}/label.txt', 'r', encoding='utf-8') as f:
+    if 'training_path' in kwargs:
+        training_path = kwargs['training_path']
+    else:
+        training_path = f'{root_path}/label.txt'
+    with open(training_path, 'r', encoding='utf-8') as f:
+        skip = False
         for idx, line in enumerate(f):
+            # if skip:
+            #     skip = False
+            #     continue
+
             if idx % 2 == 1:
                 cat, pol = line.strip().split()
                 cats.append(inv_aspect_dict[cat])
                 pols.append(inv_polarity_dict[pol])
             else:
+                # if line[0:2] == "##":
+                #     skip = True
+                #     continue
                 sentences.append(line.strip())
+    return sentences, cats, pols
+
+def load_training_data2(**kwargs):
+    sentences = []
+    cats = []
+    pols = []
+    if 'training_path' in kwargs:
+        training_path = kwargs['training_path']
+        if '2015' in training_path:
+            p = r'datasets\restaurant\2015\test_single.txt'
+        elif '2016' in training_path:
+            p = r'datasets\restaurant\2016\test_single.txt'
+    else:
+        training_path = f'{root_path}/label.txt'
+    # with open(training_path, 'r', encoding='utf-8') as f:
+    with open(training_path, 'r', encoding='utf-8') as f, open(p, 'r', encoding='utf-8') as f1:
+        skip = False
+        skips = []
+        for idx, line in enumerate(f):
+            if skip:
+                skip = False
+                continue
+
+            if idx % 2 == 1:
+                continue
+                # cat, pol = line.strip().split()
+                # cats.append(inv_aspect_dict[cat])
+                # pols.append(inv_polarity_dict[pol])
+            else:
+                if line[0:2] == "##":
+                    skip = True
+                    skips.append(idx/2)
+                    continue
+                sentences.append(line.strip())
+
+        for idx, line in enumerate(f1):
+            if idx in skips:
+                continue
+
+            split_line = line.strip().split('\t')
+            if len(split_line) < 4:
+                continue
+
+            _, cat, pol, sentence = split_line
+            cats.append(int(cat))
+            pols.append(int(pol))
+
     return sentences, cats, pols
 
 def save_in_separate(sentences, folder_path):
@@ -97,7 +156,7 @@ def load_semeval(year, data_type, label_type, **kwargs):
         pols = []
 
         for line in f:
-            split_line = line.strip().split('\t')
+            split_line = line.strip().replace(' [SEP] ', '').split('\t')
             if len(split_line) < 4:
                 continue
 
@@ -127,19 +186,38 @@ def load_embedded(load_func, **kwargs):
 
 
 def main():
-    load_embedded(load_training_data, path=f'{root_path}/training_embedding')
+    emb, cs, ps = load_embedded(load_training_data, path=f'{root_path}/training_embedding')
+    print(len(emb), len(cs), len(ps))
+    print(cs.count(0), cs.count(1), cs.count(2))
+    print(ps.count(0), ps.count(1))
+    # print(cs)
+    # print(ps)
+    # emb, cs, ps = load_embedded(load_training_data2, path=f'{root_path}/test_embedding_2016', training_path=r'datasets\restaurant\label 2016 single.txt')
+    # print(len(emb), len(cs), len(ps))
 
-    load_embedded(load_semeval, year=2015, data_type='test', label_type='single')
-    load_embedded(load_semeval, year=2015, data_type='val', label_type='single')
+    # emb, cs, ps = load_embedded(load_semeval, year=2015, data_type='test', label_type='single')
+    # print(len(emb), len(cs), len(ps))
+    # print(cs.count(0), cs.count(1), cs.count(2))
+    # print(ps.count(0), ps.count(1))
+    # # load_embedded(load_semeval, year=2015, data_type='val', label_type='single')
 
-    load_embedded(load_semeval, year=2015, data_type='test', label_type='multi')
-    load_embedded(load_semeval, year=2015, data_type='val', label_type='multi')
+    # emb, cs, ps = load_embedded(load_semeval, year=2015, data_type='test', label_type='multi')
+    # print(len(emb), len(cs), len(ps))
+    # print(cs.count(0), cs.count(1), cs.count(2))
+    # print(ps.count(0), ps.count(1))
+    # # load_embedded(load_semeval, year=2015, data_type='val', label_type='multi')
 
-    load_embedded(load_semeval, year=2016, data_type='test', label_type='single')
-    load_embedded(load_semeval, year=2016, data_type='val', label_type='single')
+    # emb, cs, ps = load_embedded(load_semeval, year=2016, data_type='test', label_type='single')
+    # print(len(emb), len(cs), len(ps))
+    # print(cs.count(0), cs.count(1), cs.count(2))
+    # print(ps.count(0), ps.count(1))
+    # # load_embedded(load_semeval, year=2016, data_type='val', label_type='single')
 
-    load_embedded(load_semeval, year=2016, data_type='test', label_type='multi')
-    load_embedded(load_semeval, year=2016, data_type='val', label_type='multi')
+    # emb, cs, ps = load_embedded(load_semeval, year=2016, data_type='test', label_type='multi')
+    # print(len(emb), len(cs), len(ps))
+    # print(cs.count(0), cs.count(1), cs.count(2))
+    # print(ps.count(0), ps.count(1))
+    # load_embedded(load_semeval, year=2016, data_type='val', label_type='multi')
 
 
 if __name__ == '__main__':
