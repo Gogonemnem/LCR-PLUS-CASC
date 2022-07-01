@@ -67,6 +67,16 @@ class LCRRothopPP(tf.keras.Model):
             tf.keras.layers.LSTM(self.hidden_units, return_sequences=True)
         )
 
+        self.left_bilstm1 = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(self.hidden_units, return_sequences=True)
+        )
+        self.target_bilstm1 = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(self.hidden_units, return_sequences=True)
+        )
+        self.right_bilstm1 = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(self.hidden_units, return_sequences=True)
+        )
+
         # Attention layers
         self.attention_left = BilinearAttention(
             2*self.hidden_units, self.regularizer)
@@ -75,6 +85,15 @@ class LCRRothopPP(tf.keras.Model):
         self.attention_target_left = BilinearAttention(
             2*self.hidden_units, self.regularizer)
         self.attention_target_right = BilinearAttention(
+            2*self.hidden_units, self.regularizer)
+
+        self.attention_left1 = BilinearAttention(
+            2*self.hidden_units, self.regularizer)
+        self.attention_right1 = BilinearAttention(
+            2*self.hidden_units, self.regularizer)
+        self.attention_target_left1 = BilinearAttention(
+            2*self.hidden_units, self.regularizer)
+        self.attention_target_right1 = BilinearAttention(
             2*self.hidden_units, self.regularizer)
 
         # Hierarchical attention layers
@@ -86,6 +105,16 @@ class LCRRothopPP(tf.keras.Model):
                 self.hierarchical_inner = HierarchicalAttention(
                     2*self.hidden_units, self.regularizer)
                 self.hierarchical_outer = HierarchicalAttention(
+                    2*self.hidden_units, self.regularizer)
+
+        if self.hierarchy is not None:
+            if self.hierarchy[0]:  # combine all
+                self.hierarchical1 = HierarchicalAttention(
+                    2*self.hidden_units, self.regularizer)
+            else:  # separate inner & outer
+                self.hierarchical_inner1 = HierarchicalAttention(
+                    2*self.hidden_units, self.regularizer)
+                self.hierarchical_outer1 = HierarchicalAttention(
                     2*self.hidden_units, self.regularizer)
 
     # def build(self, input_shape):
@@ -143,12 +172,15 @@ class LCRRothopPP(tf.keras.Model):
         # BiLSTMs
         # input_left = self.drop_input(input_left)
         left_bilstm = self.left_bilstm(input_left)
+        left_bilstm1 = self.left_bilstm1(input_left)
 
         # input_target = self.drop_input(input_target)
         target_bilstm = self.target_bilstm(input_target)
+        target_bilstm1 = self.target_bilstm1(input_target)
 
         # input_right = self.drop_input(input_right)
         right_bilstm = self.right_bilstm(input_right)
+        right_bilstm1 = self.right_bilstm1(input_right)
 
         # Representations
         representation_target_left = representation_target_right = self.average_pooling(
@@ -157,66 +189,104 @@ class LCRRothopPP(tf.keras.Model):
         representation_left = self.average_pooling(left_bilstm)[:, 0, :]
         representation_right = self.average_pooling(right_bilstm)[:, 0, :]
 
+        representation_target_left1 = representation_target_right1 = self.average_pooling(
+            target_bilstm1)[:, 0, :]
+
+        representation_left1 = self.average_pooling(left_bilstm1)[:, 0, :]
+        representation_right1 = self.average_pooling(right_bilstm1)[:, 0, :]
+
         # Attention layers
         # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
         for _ in range(self.hop):
             representation_left, representation_target_left, representation_target_right, representation_right = self._apply_bilinear_attention(
                 left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right)
+            
+            representation_left1, representation_target_left1, representation_target_right1, representation_right1 = self._apply_bilinear_attention(
+                left_bilstm1, target_bilstm1, right_bilstm1, representation_left1, representation_target_left1, representation_target_right1, representation_right1)
 
             if self.hierarchy is not None and self.hierarchy[1]:
                 representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
                     representation_left, representation_target_left, representation_target_right, representation_right)
+                representation_left1, representation_target_left1, representation_target_right1, representation_right1 = self._apply_hierarchical_attention(
+                    representation_left1, representation_target_left1, representation_target_right1, representation_right1, False)
 
         if self.hierarchy is not None and (not self.hierarchy[1] or self.hop == 0):
             representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
                 representation_left, representation_target_left, representation_target_right, representation_right)
+            representation_left1, representation_target_left1, representation_target_right1, representation_right1 = self._apply_hierarchical_attention(
+                representation_left1, representation_target_left1, representation_target_right1, representation_right1, False)
 
         # MLP
         v = tf.concat([representation_left, representation_target_left,
                       representation_target_right, representation_right], axis=1)
+        v1 = tf.concat([representation_left1, representation_target_left1,
+                      representation_target_right1, representation_right1], axis=1)
+        # v = tf.concat([representation_target_left,
+        #               representation_target_right], axis=1)
         v = self.drop_output(v)
+        v1 = self.drop_output(v1)
 
         pol = self.sentiment(v)
-        cat = self.category(v)
+        cat = self.category(v1)
         
         return {'cat': cat, 'pol': pol}
 
-    def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
+    def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right, pol=True):
         """Applies the attention layer described by in the paper"""
+        if pol:
+            l = self.attention_target_left
+            tl = self.attention_target_left
+            tr = self.attention_target_right
+            r = self.attention_right
+        else:
+            l = self.attention_target_left1
+            tl = self.attention_target_left1
+            tr = self.attention_target_right1
+            r = self.attention_right1
+            
         if self.invert:
-            representation_target_left = self.attention_target_left(
+            representation_target_left = tl(
                 [target_bilstm, representation_left])
-            representation_target_right = self.attention_target_right(
+            representation_target_right = tr(
                 [target_bilstm, representation_right])
 
-        representation_left = self.attention_left(
+        representation_left = l(
             [left_bilstm, representation_target_left])
-        representation_right = self.attention_right(
+        representation_right = r(
             [right_bilstm, representation_target_right])
 
         if not self.invert:
-            representation_target_left = self.attention_target_left(
+            representation_target_left = tl(
                 [target_bilstm, representation_left])
-            representation_target_right = self.attention_target_right(
+            representation_target_right = tr(
                 [target_bilstm, representation_right])
 
         return representation_left, representation_target_left, representation_target_right, representation_right
 
-    def _apply_hierarchical_attention(self, representation_left, representation_target_left, representation_target_right, representation_right):
+    def _apply_hierarchical_attention(self, representation_left, representation_target_left, representation_target_right, representation_right, pol=True):
         """Applies the hierarchical attention layer described by in the paper"""
+        if pol:
+            # h = self.hierarchical
+            hi = self.hierarchical_inner
+            ho = self.hierarchical_outer
+        else:
+            # h = self.hierarchical1
+            hi = self.hierarchical_inner1
+            ho = self.hierarchical_outer1
+
         if self.hierarchy[0]:  # combine all
             representations = tf.stack(
                 [representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
             representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(
-                self.hierarchical(representations), axis=1)
+                h(representations), axis=1)
         else:  # separate inner & outer
             representations = tf.stack(
                 [representation_left, representation_right], axis=1)
             representation_left, representation_right = tf.unstack(
-                self.hierarchical_outer(representations), axis=1)
+                ho(representations), axis=1)
 
             representations = tf.stack(
                 [representation_target_left, representation_target_right], axis=1)
             representation_target_left, representation_target_right = tf.unstack(
-                self.hierarchical_inner(representations), axis=1)
+                hi(representations), axis=1)
         return representation_left, representation_target_left, representation_target_right, representation_right

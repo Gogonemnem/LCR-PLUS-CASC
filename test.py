@@ -88,19 +88,15 @@ def GCEQ(q=0.4):
         return loss
     return GCE
 
-X_train, cat_train, pol_train = data.load_embedded(data.load_training_data, path=f'{root}/training_embedding')
-# X_val, cat_val, pol_val = data.load_embedded(lambda: data.load_semeval(2015, 'val', 'single'), f'{root}/val_single_embedding')
-X_test, cat_test, pol_test = data.load_embedded(data.load_semeval, year=2015, data_type='test', label_type='multi')
-pol_train = tf.one_hot(pol_train, 2, dtype='int32')
-# pol_val = tf.one_hot(pol_val, 2, dtype='int32')
-pol_test = tf.one_hot(pol_test, 2, dtype='int32')
-cat_train = tf.one_hot(cat_train, 3, dtype='int32')
-# cat_val = tf.one_hot(cat_val, 3, dtype='int32')
-cat_test = tf.one_hot(cat_test, 3, dtype='int32')
+# X_train, cat_train, pol_train = data.load_embedded(data.load_training_data, path=f'{root}/training_embedding')
+# pol_train = tf.one_hot(pol_train, 2, dtype='int32')
+# cat_train = tf.one_hot(cat_train, 3, dtype='int32')
+# y_train = {'cat': cat_train, 'pol': pol_train}
 
-y_train = {'cat': cat_train, 'pol': pol_train}
-# y_val = {'cat': cat_val, 'pol': pol_val}
-y_test = {'cat': cat_test, 'pol': pol_test}
+X_val, cat_val, pol_val = data.load_embedded(data.load_semeval, year=2015, data_type='val', label_type='multi')
+pol_val = tf.one_hot(pol_val, 2, dtype='int32')
+cat_val = tf.one_hot(cat_val, 3, dtype='int32')
+y_val = {'cat': cat_val, 'pol': pol_val}
 
 f1_pol = F1Score(num_classes=2, average='macro', name='f1')
 f1_cat = F1Score(num_classes=3, average='macro', name='f1')
@@ -158,20 +154,34 @@ def build_model(hp):
     return model
 
 stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+objective = [kt.Objective("val_cat_acc", direction="max"), kt.Objective("val_pol_acc", direction="max"),
+             kt.Objective("val_cat_f1", direction="max"), kt.Objective("val_pol_f1", direction="max")]
 
 # Instantiate the tuner
 tuner = kt.Hyperband(build_model,
-                    objective=kt.Objective("val_loss", direction="min"),
+                    objective=objective,
                     max_epochs=20,
                     factor=10,
                     hyperband_iterations=5,
                     directory="logs/hp",
-                    project_name="2015_single",)
+                    project_name="2015_LCR_MULTI",)
 
-tuner.search(X_train, y_train, validation_split=0.2, batch_size=32, callbacks=[stop_early], verbose=1)
+# tuner.search(X_train, y_train, validation_data=(X_val, y_val), batch_size=32, callbacks=[stop_early], verbose=1)
+tuner.search(X_val, y_val, validation_split=0.2, batch_size=32, callbacks=[stop_early], verbose=1)
 print('test')
-models = tuner.get_best_models(num_models=1)
-# best_model = models[0]
-# best_model.evaluate(X_test, y_test, batch_size=16)
-# print(best_model.left_bilstm)
+models = tuner.get_best_models(num_models=5)
+print(tuner.get_best_hyperparameters(1)[0].__dict__)
+best_model = models[0]
 
+
+X_test, cat_test, pol_test = data.load_embedded(data.load_semeval, year=2016, data_type='test', label_type='multi')
+pol_test = tf.one_hot(pol_test, 2, dtype='int32')
+cat_test = tf.one_hot(cat_test, 3, dtype='int32')
+y_test = {'cat': cat_test, 'pol': pol_test}
+best_model.evaluate(X_test, y_test, batch_size=16)
+
+X_test, cat_test, pol_test = data.load_embedded(data.load_semeval, year=2015, data_type='test', label_type='multi')
+pol_test = tf.one_hot(pol_test, 2, dtype='int32')
+cat_test = tf.one_hot(cat_test, 3, dtype='int32')
+y_test = {'cat': cat_test, 'pol': pol_test}
+best_model.evaluate(X_test, y_test, batch_size=16)

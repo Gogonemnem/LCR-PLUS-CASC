@@ -50,7 +50,7 @@ class Trainer:
         with open(f'{self.root_path}/label.txt', 'r', encoding='utf-8') as f:
             for idx, line in enumerate(f):
                 if idx % 2 == 1:
-                    cat, pol = line.strip().split()
+                    cat, pol = line.replace(" [SEP] ", "").strip().split()
                     cats.append(self.inv_aspect_dict[cat])
                     pols.append(self.inv_polarity_dict[pol])
                 else:
@@ -142,14 +142,21 @@ class Trainer:
         test_cats = []
         test_pols = []
 
-        with open(f'{self.root_path}/test.txt', 'r', encoding='utf-8') as f:
-            for line in f:
-                _, cat, pol, sentence = line.strip().split('\t')
-                cat = int(cat)
-                pol = int(pol)
-                test_cats.append(cat)
-                test_pols.append(pol)
-                test_sentences.append(sentence)
+        # with open(f'{self.root_path}/test.txt', 'r', encoding='utf-8') as f:
+        #     for line in f:
+        #         split_sentence = line.replace(" [SEP] ", "").strip().split('\t')
+        #         if len(split_sentence) < 4:
+        #             continue
+        #         _, cat, pol, sentence = line.strip().split('\t')
+        #         cat = int(cat)
+        #         pol = int(pol)
+        #         test_cats.append(cat)
+        #         test_pols.append(pol)
+        #         test_sentences.append(sentence)
+
+        import data
+        # test_sentences, test_cats, test_pols = data.load_training_data2(training_path=r'datasets\restaurant\label 2015 multi.txt')
+        test_sentences, test_cats, test_pols = data.load_semeval(2016, 'test', 'single')
 
         df = pd.DataFrame(columns=(
             ['sentence', 'actual category', 'predicted category', 'actual polarity', 'predicted polarity']))
