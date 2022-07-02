@@ -37,6 +37,13 @@
   \clearlist{language}{}%
   \clearlist{location}{}%
   \clearname{editor}{}%
+  \ifentrytype{inproceedings}{%
+    \clearlist{publisher}%
+  }
+  \ifentrytype{incollection}{%
+    \clearlist{publisher}%
+  }
+  
   }
 
 % some natbib backwards compatibility 

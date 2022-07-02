@@ -329,7 +329,7 @@
 \newcommand*{\logo}[2]{\def\logofig{#1}\def\logowidth{#2}}
 
 \supervisor		{Dr. Flavius Fr\u{a}sincar}
-\coreader			{TBD}
+\coreader			{Dr. Kathrin Gruber}
 \examiner			{}
 \degree				{Bachelor of Science$^2$ in Econometrics \& Economics}
 \authors			{}
