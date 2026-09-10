@@ -3,49 +3,50 @@ from torch import nn
 import torch.nn.functional as F
 from transformers import BertModel
 
+BERT_HIDDEN_SIZE = 768
+
+
 class LQLoss(nn.Module):
-    
+    """Generalized cross-entropy (GCE) loss with per-class weights."""
+
     def __init__(self, q, weight, alpha=0.0):
         super().__init__()
-        self.q = q ## parameter in the paper
-        self.alpha = alpha ## hyper-parameter for trade-off between weighted and unweighted GCE Loss
-        self.register_buffer('weight', F.softmax(torch.log(1 / torch.tensor(weight, dtype=torch.float32)), dim=-1)) ## per-class weights
+        self.q = q
+        self.alpha = alpha
+        weight = torch.log(1 / torch.as_tensor(weight, dtype=torch.float32))
+        self.register_buffer('weight', F.softmax(weight, dim=-1))
 
-    def forward(self, input, target, *args, **kwargs):
-        bsz, _ = input.size()
+    def forward(self, input, target):
+        yq = torch.gather(input, 1, target.unsqueeze(1))
+        lq = (1 - yq ** self.q) / self.q
+        weight = torch.gather(self.weight.expand_as(input), 1, target.unsqueeze(1))
+        return (self.alpha * lq + (1 - self.alpha) * lq * weight).mean()
 
-        Yq = torch.gather(input, 1, target.unsqueeze(1))
-        lq = (1 - torch.pow(Yq, self.q)) / self.q
+    def set_weights(self, weights):
+        weight = torch.log(1 / torch.as_tensor(weights, dtype=torch.float32, device=self.weight.device))
+        self.weight.copy_(F.softmax(weight, dim=-1))
 
-        _weight = self.weight.to(input.device).repeat(bsz).view(bsz, -1)
-        _weight = torch.gather(_weight, 1, target.unsqueeze(1))
-
-        return torch.mean(self.alpha * lq + (1 - self.alpha) * lq * _weight)
 
 class BERTLinear(nn.Module):
     def __init__(self, bert_type, num_cat, num_pol, aspect_weights=None, sentiment_weights=None):
         super().__init__()
-        self.bert = BertModel.from_pretrained(
-            bert_type, output_hidden_states=True)
-        self.ff_cat = nn.Linear(768, num_cat)
-        self.ff_pol = nn.Linear(768, num_pol)
+        self.bert = BertModel.from_pretrained(bert_type, output_hidden_states=True)
+        self.ff_cat = nn.Linear(BERT_HIDDEN_SIZE, num_cat)
+        self.ff_pol = nn.Linear(BERT_HIDDEN_SIZE, num_pol)
         if aspect_weights is None:
             aspect_weights = [1] * num_cat
         if sentiment_weights is None:
             sentiment_weights = [1] * num_pol
-        self.aspect_weights = list(aspect_weights)
-        self.sentiment_weights = list(sentiment_weights)
+        self.loss_cat = LQLoss(0.4, aspect_weights)
+        self.loss_pol = LQLoss(0.4, sentiment_weights)
 
     def forward(self, labels_cat, labels_pol, **kwargs):
-        outputs = self.bert(**kwargs)
-        x = outputs.hidden_states[-1]  # (bsz, seq_len, 768)
+        bert_hidden = self.bert(**kwargs).hidden_states[-1]  # (bsz, seq_len, 768)
+        mask = kwargs['attention_mask'].unsqueeze(-1).to(bert_hidden.dtype)  # (bsz, seq_len, 1)
+        sentence_emb = (bert_hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
 
-        mask = kwargs['attention_mask']  # (bsz, seq_len)
-        se = x * mask.unsqueeze(2)
-        den = mask.sum(dim=1).unsqueeze(1)
-        se = se.sum(dim=1) / den  # (bsz, 768)
-
-        logits_cat = self.ff_cat(se)  # (bsz, num_cat)
-        logits_pol = self.ff_pol(se)  # (bsz, num_pol)
-        loss = LQLoss(0.4, self.aspect_weights)(F.softmax(logits_cat), labels_cat) + LQLoss(0.4, self.sentiment_weights)(F.softmax(logits_pol), labels_pol)
+        logits_cat = self.ff_cat(sentence_emb)
+        logits_pol = self.ff_pol(sentence_emb)
+        loss = (self.loss_cat(F.softmax(logits_cat, dim=-1), labels_cat)
+                + self.loss_pol(F.softmax(logits_pol, dim=-1), labels_pol))
         return loss, logits_cat, logits_pol

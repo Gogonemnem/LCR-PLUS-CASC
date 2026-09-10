@@ -6,7 +6,7 @@ import os
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer
-from tqdm import tqdm, trange
+from tqdm import trange
 from torch.utils.data import DataLoader, TensorDataset
 from .model import BERTLinear
 from .. import data
@@ -79,15 +79,15 @@ class Trainer:
         self.update_class_weights(labels_cat, labels_pol)
 
         dataset = TensorDataset(
-            labels_cat, labels_pol, encoded_dict['input_ids'], encoded_dict['token_type_ids'], encoded_dict['attention_mask'])
+            labels_cat, labels_pol, encoded_dict['input_ids'], encoded_dict['attention_mask'])
         return dataset
 
     def update_class_weights(self, labels_cat, labels_pol):
         model = _unwrap(self.model)
         num_cat = model.ff_cat.out_features
         num_pol = model.ff_pol.out_features
-        model.aspect_weights = torch.bincount(labels_cat, minlength=num_cat).tolist()
-        model.sentiment_weights = torch.bincount(labels_pol, minlength=num_pol).tolist()
+        model.loss_cat.set_weights(torch.bincount(labels_cat, minlength=num_cat).tolist())
+        model.loss_pol.set_weights(torch.bincount(labels_pol, minlength=num_pol).tolist())
 
     def set_seed(self, value):
         random.seed(value)
@@ -124,11 +124,10 @@ class Trainer:
             print_loss = 0
             batch_loss = 0
             cnt = 0
-            for labels_cat, labels_pol, input_ids, token_type_ids, attention_mask in dataloader:
+            for labels_cat, labels_pol, input_ids, attention_mask in dataloader:
                 optimizer.zero_grad()
                 encoded_dict = {
                     'input_ids': input_ids.to(device),
-                    'token_type_ids': token_type_ids.to(device),
                     'attention_mask': attention_mask.to(device)
                 }
                 loss, _, _ = model(labels_cat.to(device),
@@ -139,7 +138,7 @@ class Trainer:
                 batch_loss += loss.item()
                 cnt += 1
                 if cnt % 50 == 0:
-                    print('Batch loss:', batch_loss / 50)
+                    self.logger.info('Batch loss: %.6f', batch_loss / 50)
                     batch_loss = 0
 
             print_loss /= cnt
@@ -147,10 +146,9 @@ class Trainer:
             with torch.no_grad():
                 val_loss = 0
                 iters = 0
-                for labels_cat, labels_pol, input_ids, token_type_ids, attention_mask in val_dataloader:
+                for labels_cat, labels_pol, input_ids, attention_mask in val_dataloader:
                     encoded_dict = {
                         'input_ids': input_ids.to(device),
-                        'token_type_ids': token_type_ids.to(device),
                         'attention_mask': attention_mask.to(device)
                     }
                     loss, _, _ = model(labels_cat.to(
@@ -179,10 +177,7 @@ class Trainer:
 
     def load_model(self, name='model_CASC'):
         """Load a model; accepts a directory (run dir) or an explicit .pth path."""
-        model = _maybe_parallel(BERTLinear(
-            self.bert_type,
-            len(aspect_category_mapper[self.domain]),
-            len(sentiment_category_mapper[self.domain])).to(self.device))
+        model = self.model
         if os.path.isdir(name):
             path = os.path.join(name, 'casc_model.pth')
             if not os.path.exists(path):
@@ -218,21 +213,30 @@ class Trainer:
 
         rows = []
         with torch.no_grad():
-            for sentence, cat, pol in tqdm(zip(test_sentences, test_cats, test_pols)):
+            for i in range(0, len(test_sentences), batch_size):
+                batch = test_sentences[i:i + batch_size]
+                batch_cats = test_cats[i:i + batch_size]
+                batch_pols = test_pols[i:i + batch_size]
+                cats = torch.tensor(batch_cats)
+                pols = torch.tensor(batch_pols)
 
-                encoded_dict = self.tokenizer([sentence],
-                                              padding=True,
-                                              return_tensors='pt',
-                                              return_attention_mask=True,
-                                              truncation=True).to(device)
+                encoded = self.tokenizer(
+                    batch,
+                    padding='longest',
+                    return_tensors='pt',
+                    return_attention_mask=True,
+                    max_length=128,
+                    truncation=True).to(device)
 
-                loss, logits_cat, logits_pol = model(torch.tensor([cat]).to(
-                    device), torch.tensor([pol]).to(device), **encoded_dict)
+                _, logits_cat, logits_pol = model(cats.to(device),
+                                                  pols.to(device), **encoded)
 
-                rows.append([sentence, self.aspect_dict[cat],
-                             self.aspect_dict[torch.argmax(logits_cat).item()],
-                             self.polarity_dict[pol],
-                             self.polarity_dict[torch.argmax(logits_pol).item()]])
+                for sentence, cat, logit_cat, pol, logit_pol in zip(
+                        batch, batch_cats, logits_cat, batch_pols, logits_pol):
+                    rows.append([sentence, self.aspect_dict[cat],
+                                 self.aspect_dict[logit_cat.argmax().item()],
+                                 self.polarity_dict[pol],
+                                 self.polarity_dict[logit_pol.argmax().item()]])
 
         df = pd.DataFrame(rows, columns=['sentence', 'actual category', 'predicted category', 'actual polarity', 'predicted polarity'])
 
