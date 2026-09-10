@@ -1,5 +1,5 @@
-from config import *
-import data
+from lcr_plus_casc.config import *
+from lcr_plus_casc import data
 
 domain = config['domain']
 device = config['device']

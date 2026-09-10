@@ -1,21 +1,38 @@
 # LCR+CASC
-Code for Left-Center-Right Context-aware Aspect Category and Sentiment Classification. The code extends the code for CASC which can be found here: https://www.github.com/Raghu150999/UnsupervisedABSA
+Code for Left-Center-Right Context-aware Aspect Category and Sentiment Classification. The code extends the CASC code from https://www.github.com/Raghu150999/UnsupervisedABSA.
+
 ## Setup
-Code is written in Python 3(.10) with all dependencies noted in requirements.txt. Pytorch and Tensorflow are the main packages, which require additional setup for optimal experience.
+Python 3.10+ with the dependencies in `requirements.txt` (PyTorch is the only deep-learning framework; the original TensorFlow parts have been ported).
 
-## Software explanation
-As mentioned before, the code is based on source code written by others. Therefore, only new files are explained in this section. Furthermore, the code has been used as scripts. Thus, most of the code has to be run one by one to retrieve results.
+## Pipeline
+1. `prep` — CASC-style unsupervised preprocessing: build the domain vocabulary, extract aspect terms, compute scores, and label polarity/aspect (Huang et al. 2020 Yelp restaurant reviews, built on the Tang et al. 2016 SemEval task).
+2. `embed` — embed all (aspect, context) pairs with BERT-DK so the neural models read pre-computed tensors from disk (no mixing of frameworks at train time).
+3. `casc` — train/evaluate the baseline `BERTLinear` CASC model.
+4. `lcr` — train/evaluate (or Optuna-tune) the two-tower `LCRRothopPP` model with the GCE loss.
 
-The first part of the process is similar to the CASC procedure. Retrieve labels and scores for training data. However, our model uses a different method for scoring and labeling sentences. The rest of the process is quite different from the source code. First turn the SemEval .xml files into the same format of CASC source code. Afterwards, turn data into usable data. This step embeds all sentences using a version of DK-BERT. This step is required as Tensorflow and Pytorch are not compatible with each other. Afterwards the neural model can be trained (or hyperparameter optimized).
+Everything is driven from a single CLI:
+```
+python main.py --domain restaurant [--device cuda:0] prep
+python main.py --domain restaurant [--device cuda:0] embed --split train
+python main.py --domain restaurant [--device cuda:0] casc   [--epochs ... --batch_size ...]
+python main.py --domain restaurant [--device cuda:0] lcr    [--tune | --eval]
+python main.py --domain restaurant [--device cuda:0] all
+```
+`--device cpu` forces CPU; on a multi-GPU box the trainers auto-wrap in `DataParallel` when >1 CUDA device is visible. `evaluate_test.py` gives a standalone sklearn classification report for a saved model.
 
-The following files are different from the source code:
-- attention.py: The attention layers of HAABSA++.
-- data.py: Loads the data in a usable format for the neural model.
-- embedding.py: Embeds sentences using DK-BERT described in the paper. 
-- example.py: An example how to use the code. The code also performs hyperparameter optimization.
-- evaluate_test.py: Evaluates the performance of a model using SkLearn's classification report function.
-- hypertrain.py: Reusable code to easily produce various hyperparameter optimized LCR-Rot-hop++ models.
-- labeler_test.py: Our maximum score labeler function.
-- lcr_rot_hop_plus_plus.py: Our double-task version of LCR-Rot-hop++.
-- score_computer_test.py: Our maximum score function. This step also performs Aspect Term Extraction.
-- semeval_reader.py: Data reader for the 2015 and 2016 restaurant SemEval datasets. Turns data into the same format used by the source code of CASC.
+## Layout
+```
+lcr_plus_casc/
+  config.py          # shared paths/splits/label maps
+  filter_words.py    # shared stop-word list
+  data.py            # shared dataset loaders (both pipelines)
+  casc/              # CASC pipeline (BERT-DK + Linear baseline)
+    model.py         #   BERTLinear, LQLoss
+    vocab_generator.py / extracter.py / score_computer.py / labeler.py
+    semeval_reader.py
+    trainer.py       #   Trainer for BERTLinear
+  lcr/               # LCR pipeline (two-tower RoTHop++)
+    lcr_model.py     #   LCRRothopPP
+    embedding.py     #   tokenize/embed helpers
+    trainer.py       #   LCRTrainer, GCEQ loss
+```
