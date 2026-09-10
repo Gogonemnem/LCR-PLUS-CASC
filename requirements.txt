@@ -7,4 +7,5 @@ tqdm
 numpy
 spacy
 pandas
-sklearn
+scikit-learn
+optuna

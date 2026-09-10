@@ -1,13 +1,10 @@
-from logging import root
 import os
 
-from config import *
-from embedding import embed_separated, tokenize_separated
-
+from .config import *
+from .lcr.embedding import embed_separated, tokenize_separated
 
 import numpy as np
-import tensorflow as tf
-
+import torch
 
 domain = config['domain']
 root_path = path_mapper[domain]
@@ -25,9 +22,6 @@ inv_polarity_dict = {}
 for i, pol in enumerate(polarities):
     polarity_dict[i] = pol
     inv_polarity_dict[pol] = i
-
-print(polarity_dict, aspect_dict)
-
 
 def load_training_data(**kwargs):
     sentences = []
@@ -54,6 +48,65 @@ def load_training_data(**kwargs):
                 #     continue
                 sentences.append(line.strip())
     return sentences, cats, pols
+
+
+def parse_labeled_lines(text):
+    """Parse the alternating (sentence, 'cat pol') layout used by all split files.
+
+    Robust to extra whitespace and trailing '[SEP]' tokens. Returns (sentences, cats, pols)
+    with integer label indices.
+    """
+    import re
+    sentences = []
+    cats = []
+    pols = []
+    for idx, line in enumerate(text.splitlines()):
+        line = line.strip()
+        if idx % 2 == 1:
+            toks = [t for t in re.split(r'(?:\s*\[SEP\]\s*)*', line.replace('[SEP]', ' ')) if t]
+            if len(toks) < 2:
+                raise ValueError(f'Malformed label line {idx}: {line!r}')
+            cat, pol = toks[0], toks[1]
+            if cat not in inv_aspect_dict or pol not in inv_polarity_dict:
+                raise ValueError(f'Unknown label at line {idx}: {line!r}')
+            cats.append(inv_aspect_dict[cat])
+            pols.append(inv_polarity_dict[pol])
+        elif line:
+            sentences.append(line)
+    if len(sentences) != len(cats):
+        raise ValueError(f'Label/sentence mismatch: {len(sentences)} sentences vs {len(cats)} labels')
+    return sentences, cats, pols
+
+
+def load_labeled_file(path):
+    """Load one split file (sentence/label alternating) into (sentences, cats, pols)."""
+    with open(path, 'r', encoding='utf-8') as f:
+        return parse_labeled_lines(f.read())
+
+
+def load_embedded_split(embed_folder, label_path):
+    """Load an embedded split: combined embedding tensor + int category/polarity labels.
+
+    `embed_folder` may omit the trailing 's'; the combined file is '<folder>s.npy'.
+    """
+    ss, cs, ps = load_training_data(training_path=label_path)
+    if not embed_folder.endswith('s.npy') and not embed_folder.endswith('.npy'):
+        embed_folder = f'{embed_folder}s'
+    emb = np.load(f'{embed_folder}.npy')
+    if emb.shape[0] != len(cs):
+        raise ValueError(f'Embedding/label shape mismatch in {embed_folder}: {emb.shape[0]} vs {len(cs)}')
+    return emb, cs, ps
+
+
+def make_tensor_dataset(X, cats, pols):
+    """Build a torch TensorDataset from a combined embedding array + int labels."""
+    from torch.utils.data import TensorDataset
+    return TensorDataset(
+        torch.from_numpy(np.ascontiguousarray(np.asarray(X, dtype=np.float32))),
+        torch.as_tensor(cats, dtype=torch.long),
+        torch.as_tensor(pols, dtype=torch.long),
+    )
+
 
 def load_training_data2(**kwargs):
     sentences = []
@@ -150,7 +203,10 @@ def load_embedded_training(**kwargs):
 
 # dt = tf.data.Dataset.from_tensor_slices((emb, cs, ps))
 def load_semeval(year, data_type, label_type, **kwargs):
-    with open(f'{root_path}/{str(year)}/{data_type}_{label_type}.txt', 'r', encoding='utf-8') as f:
+    path = f'{root_path}/{str(year)}/{data_type}_{label_type}.txt'
+    if not os.path.exists(path):
+        path = f'{root_path}/{data_type}.txt'
+    with open(path, 'r', encoding='utf-8') as f:
         sentences = []
         cats = []
         pols = []

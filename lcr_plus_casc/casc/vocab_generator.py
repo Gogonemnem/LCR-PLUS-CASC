@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer, BertForMaskedLM
-from config import *
-from filter_words import filter_words
+from ..config import *
+from ..filter_words import filter_words
 import torch
 from tqdm import tqdm
 
@@ -58,18 +58,14 @@ class VocabGenerator:
         vocabularies = {}
 
         for category in categories:
-            words = []
-            for key in freq_table[category]:
-                words.append((freq_table[category][key], key))
-            words.sort(reverse=True)
+            words = sorted(((freq, word) for word, freq in freq_table[category].items()),
+                           reverse=True)
             vocabularies[category] = words
 
             if self.save_results:
-                # Saving vocabularies
-                f = open(f'{self.root_path}/dict_{category}.txt', 'w')
-                for freq, word in words:
-                    f.write(f'{word} {freq}\n')
-                f.close()
+                with open(f'{self.root_path}/dict_{category}.txt', 'w', encoding='utf-8') as f:
+                    for freq, word in words:
+                        f.write(f'{word} {freq}\n')
 
         return vocabularies
     
@@ -97,11 +93,11 @@ class VocabGenerator:
         vocabularies = {}
 
         for category in categories:
+            words = []
             with open(f'{folder_path}/dict_{category}.txt', encoding='utf-8') as f:
-                words = []
                 for line in tqdm(f):
                     word, freq = line.strip().split()
                     words.append((freq, word))
-                    vocabularies[category] = words
-        
+            vocabularies[category] = words
+
         return vocabularies

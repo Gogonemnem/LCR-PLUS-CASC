@@ -2,6 +2,7 @@
 venv/
 datasets/
 logs/
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -53,3 +54,5 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+.venv-test/
+.venv/

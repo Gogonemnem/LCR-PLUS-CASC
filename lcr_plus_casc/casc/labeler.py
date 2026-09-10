@@ -1,4 +1,4 @@
-from config import *
+from ..config import *
 import numpy as np
 import re
 
@@ -21,43 +21,42 @@ class Labeler:
 
         # Read scores
         with open(f'{self.root_path}/scores.txt', 'r', encoding='utf-8') as f:
-            for idx, line in enumerate(f):
+            lines = f.readlines()
+            for idx, line in enumerate(lines):
                 if idx % 2 == 1:
                     values = line.strip().split()
                     for j in range(0, len(values), 3):
                         construct = values[j][:-1]
                         value = float(values[j+1][:-1])
-                        
+
                         dist[construct].append(value)
-                    # for j, val in enumerate(values):
-                    #     if j % 2 == 1:
-                    #         dist[values[j-1][:-1]].append(float(val))
-        
+
         # Compute mean and sigma for each category
         means = {}
         sigma = {}
         for key in dist:
             means[key] = np.mean(dist[key])
             sigma[key] = np.std(dist[key])
-        
-        nf = open(f'{self.root_path}/label.txt', 'w', encoding='utf-8')
+
         cnt = {}
-        with open(f'{self.root_path}/scores.txt', 'r', encoding='utf-8') as f:
+        with open(f'{self.root_path}/label.txt', 'w', encoding='utf-8') as nf:
             sentence = None
-            for idx, line in enumerate(f):
+            for idx, line in enumerate(lines):
                 if idx % 2 == 1:
                     aspect = []
                     aspect_word = None
                     sentiment = []
-                    key = None
                     values = line.strip().split()
 
                     # Normalise score
                     for j in range(0, len(values), 3):
                         construct = values[j][:-1]
                         value = float(values[j+1][:-1])
-                        dev = (float(value) - means[construct]) / sigma[construct]
-                        # print(construct, dev)
+                        # No decision possible if scores are constant
+                        if sigma[construct] == 0:
+                            dev = 0.0
+                        else:
+                            dev = (float(value) - means[construct]) / sigma[construct]
 
                         if dev >= lambda_threshold:
                             if construct in categories:
@@ -66,30 +65,17 @@ class Labeler:
                             else:
                                 sentiment.append(construct)
 
-                    # for j, val in enumerate(values):
-                    #     if j % 2 == 1:
-                    #         # Normalise score
-                    #         dev = (float(val) - means[key]) / sigma[key]
-                    #         if dev >= lambda_threshold:
-                    #             if key in categories:
-                    #                 aspect.append(key)
-                    #             else:
-                    #                 sentiment.append(key)
-                    #     else:
-                    #         key = val[:-1]
                     # No conflict (avoid multi-class sentences)
-                    # print(len(aspect), len(sentiment))
                     if len(aspect) == 1 and len(sentiment) == 1:
                         separated_sentence = separate_sentence(aspect_word, sentence)
+                        if separated_sentence is None:
+                            continue
                         nf.write(separated_sentence)
                         nf.write(f'{aspect[0]} {sentiment[0]}\n')
                         keyword = f'{aspect[0]}-{sentiment[0]}'
                         cnt[keyword] = cnt.get(keyword, 0) + 1
                 else:
                     sentence = line
-                
-                # if idx>10:
-                #     break
         nf.close()
         # Labeled data statistics
         print('Labeled data statistics:')
@@ -97,6 +83,11 @@ class Labeler:
 
 
 def separate_sentence(pattern, sentence):
-    split_sent = re.split(pattern, sentence, maxsplit=1)
-    separated_sentence = f"{split_sent[0]} [SEP] {pattern} [SEP] {split_sent[1]}"
-    return separated_sentence
+    # Escape: tokens may contain regex metacharacters (e.g. "can't", "1.5")
+    match = re.search(re.escape(pattern), sentence)
+    if match is None:
+        # Token not found verbatim (e.g. BERT subtoken or case mismatch)
+        return None
+    before = sentence[:match.start()].rstrip()
+    after = sentence[match.end():].lstrip()
+    return f"{before} [SEP] {pattern} [SEP] {after}"

@@ -9,7 +9,7 @@ class LQLoss(nn.Module):
         super().__init__()
         self.q = q ## parameter in the paper
         self.alpha = alpha ## hyper-parameter for trade-off between weighted and unweighted GCE Loss
-        self.weight = nn.Parameter(F.softmax(torch.log(1 / torch.tensor(weight)), dim=-1), requires_grad=False).to('cuda') ## per-class weights
+        self.register_buffer('weight', F.softmax(torch.log(1 / torch.tensor(weight, dtype=torch.float32)), dim=-1)) ## per-class weights
 
     def forward(self, input, target, *args, **kwargs):
         bsz, _ = input.size()
@@ -17,24 +17,28 @@ class LQLoss(nn.Module):
         Yq = torch.gather(input, 1, target.unsqueeze(1))
         lq = (1 - torch.pow(Yq, self.q)) / self.q
 
-        _weight = self.weight.repeat(bsz).view(bsz, -1)
+        _weight = self.weight.to(input.device).repeat(bsz).view(bsz, -1)
         _weight = torch.gather(_weight, 1, target.unsqueeze(1))
-    
+
         return torch.mean(self.alpha * lq + (1 - self.alpha) * lq * _weight)
 
 class BERTLinear(nn.Module):
-    def __init__(self, bert_type, num_cat, num_pol):
+    def __init__(self, bert_type, num_cat, num_pol, aspect_weights=None, sentiment_weights=None):
         super().__init__()
         self.bert = BertModel.from_pretrained(
             bert_type, output_hidden_states=True)
         self.ff_cat = nn.Linear(768, num_cat)
         self.ff_pol = nn.Linear(768, num_pol)
-        self.aspect_weights = [345, 67, 201] # aspect category distribution (restaurant)
-        self.sentiment_weights = [231, 382] # sentiment category distribution (restaurant)
+        if aspect_weights is None:
+            aspect_weights = [1] * num_cat
+        if sentiment_weights is None:
+            sentiment_weights = [1] * num_pol
+        self.aspect_weights = list(aspect_weights)
+        self.sentiment_weights = list(sentiment_weights)
 
     def forward(self, labels_cat, labels_pol, **kwargs):
         outputs = self.bert(**kwargs)
-        x = outputs[2][11]  # (bsz, seq_len, 768)
+        x = outputs.hidden_states[-1]  # (bsz, seq_len, 768)
 
         mask = kwargs['attention_mask']  # (bsz, seq_len)
         se = x * mask.unsqueeze(2)

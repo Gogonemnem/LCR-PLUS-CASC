@@ -1,6 +1,9 @@
+import torch as _torch
+
 config = {
     'domain': 'restaurant',
-    'device': 'cuda:0'
+    'device': 'cuda:0' if _torch.cuda.is_available() else 'cpu',
+    'output_root': './output',
 }
 bert_mapper = {
     'laptop': 'activebus/BERT-DK_laptop',
