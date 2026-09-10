@@ -38,12 +38,16 @@ import os
 
 
 def _config(args):
-    """Apply --domain/--device to the package config before importing data modules."""
+    """Apply --domain/--device/--gce-q to the package config before importing data modules."""
     import lcr_plus_casc.config as cfg
     if args.domain:
         cfg.config['domain'] = args.domain
     if args.device:
         cfg.config['device'] = args.device
+    if getattr(args, 'gce_q', None) is not None:
+        cfg.config['gce_q'] = args.gce_q
+    if getattr(args, 'seed', None) is not None:
+        cfg.seed = args.seed
     return cfg
 
 
@@ -81,19 +85,9 @@ def _resolve_resume(resume, kind):
 # ------------------------------- preprocessing --------------------------------
 def cmd_prep(args):
     _config(args)
-    from lcr_plus_casc.casc.vocab_generator import VocabGenerator
-    from lcr_plus_casc.casc.extracter import Extracter
-    from lcr_plus_casc.casc.score_computer import ScoreComputer
-    from lcr_plus_casc.casc.labeler import Labeler
+    from lcr_plus_casc.labeling import run_labeling
 
-    gen = VocabGenerator()
-    try:
-        aspect_vocab, sentiment_vocab = gen.from_folder()
-    except FileNotFoundError:
-        aspect_vocab, sentiment_vocab = gen()  # generate + save dict_*.txt
-    sentences, aspects, opinions = Extracter()()
-    ScoreComputer(aspect_vocab, sentiment_vocab)(sentences, aspects, opinions)
-    Labeler()()
+    run_labeling()
     print('prep complete')
 
 
@@ -102,8 +96,7 @@ def cmd_embed(args):
     import numpy as np
     _config(args)
     from lcr_plus_casc import data
-    from lcr_plus_casc.lcr.embedding import tokenize_separated, embed_separated
-    import torch
+    from lcr_plus_casc.classifiers import tokenize_separated, embed_separated
     import os
 
     sentences, cats, pols = data.load_training_data(training_path=args.path)
@@ -168,12 +161,13 @@ def _resolve_load(run_dir, filename, suffixes):
 
 # ----------------------------------- CASC -------------------------------------
 def cmd_casc(args):
-    from lcr_plus_casc.casc.trainer import Trainer
+    _config(args)
+    from lcr_plus_casc.classifiers.training import CASC
 
     kind = 'all' if args.command == 'all' else 'casc'
     run_dir = _ensure_run(args, kind, extra={'epochs': args.epochs, 'device': args.device})
 
-    trainer = Trainer()
+    trainer = CASC()
     resume_ckpt = os.path.join(run_dir, 'casc_checkpoint.pth') if args.resume else None
     if args.run in ('train', 'both'):
         dataset = trainer.load_training_data()
@@ -181,7 +175,7 @@ def cmd_casc(args):
         trainer.save_model(args.save or 'casc_model')
     if args.run in ('eval', 'both'):
         trainer.load_model(args.load or _resolve_load(run_dir, 'casc_model', ('_casc', '_all')))
-        trainer.evaluate(test_year=args.test_year, test_type=args.test_type,
+        trainer.evaluate(year=args.test_year, test_type=args.test_type,
                          label_type=args.label_type)
 
 
@@ -198,16 +192,16 @@ def _load_lcr_data(args):
 def cmd_lcr(args):
     import numpy as np
     cfg = _config(args)
-    from lcr_plus_casc.lcr.trainer import LCRTrainer
+    from lcr_plus_casc.classifiers.training import LCR
 
     X_train, cat_train, pol_train, X_val, cat_val, pol_val = _load_lcr_data(args)
     domain = cfg.config['domain']
 
     def make_trainer():
-        return LCRTrainer(hidden_units=args.hidden_units, hop=args.hop,
-                          drop_1=args.drop_1, drop_2=args.drop_2,
-                          num_cat=len(cfg.aspect_category_mapper[domain]),
-                          num_pol=len(cfg.sentiment_category_mapper[domain]))
+        return LCR(hidden_units=args.hidden_units, hop=args.hop,
+                   drop_1=args.drop_1, drop_2=args.drop_2,
+                   num_cat=len(cfg.aspect_category_mapper[domain]),
+                   num_pol=len(cfg.sentiment_category_mapper[domain]))
 
     if args.run == 'tune':
         _ensure_run(args, 'lcr_tune', extra={'device': args.device})
@@ -255,9 +249,12 @@ def cmd_all(args):
 
 # --------------------------------- CLI setup ----------------------------------
 def build_parser():
+    from lcr_plus_casc import config as cfg
     p = argparse.ArgumentParser(description='CASC + LCR aspect/polarity pipeline')
     p.add_argument('--domain', default=None, choices=['restaurant', 'laptop'])
     p.add_argument('--device', default=None, help="e.g. cuda:0 or cpu")
+    p.add_argument('--seed', type=int, default=None,
+                   help='random seed (default from config)')
     sub = p.add_subparsers(dest='command', required=True)
 
     sub.add_parser('prep', help='CASC preprocessing (vocab/extract/score/label)')
@@ -273,10 +270,13 @@ def build_parser():
     pc.add_argument('--resume', nargs='?', const=True, default=None,
                     metavar='RUN_DIR',
                     help='resume from checkpoint.pth (of RUN_DIR, or the newest run when omitted)')
-    pc.add_argument('--epochs', type=int, default=20)
-    pc.add_argument('--test-year', type=int, default=2016)
-    pc.add_argument('--test-type', default='test')
-    pc.add_argument('--label-type', default='single')
+    pc.add_argument('--epochs', type=int, default=cfg.epochs)
+    pc.add_argument('--gce-q', type=float, default=None,
+                    help='GCE loss q (default from config: 0.4)')
+    pc.add_argument('--test-year', type=int, default=None,
+                    help='SemEval test year (default from config)')
+    pc.add_argument('--test-type', default=cfg.test_type)
+    pc.add_argument('--label-type', default=cfg.label_type)
 
     pl = sub.add_parser('lcr', help='train/tune/eval the LCRRothopPP model')
     pl.add_argument('--run', default='both', choices=['train', 'eval', 'tune', 'both'])
@@ -284,16 +284,17 @@ def build_parser():
     pl.add_argument('--val-path', default=None, help='validation label.txt path')
     pl.add_argument('--test-emb', default=None, help='test embedding folder')
     pl.add_argument('--test-path', default=None, help='test label.txt path')
-    pl.add_argument('--epochs', type=int, default=20)
-    pl.add_argument('--batch-size', type=int, default=32)
-    pl.add_argument('--lr', type=float, default=1e-4)
-    pl.add_argument('--q', type=float, default=0.4)
-    pl.add_argument('--hop', type=int, default=2)
-    pl.add_argument('--hidden-units', type=int, default=512)
-    pl.add_argument('--drop-1', type=float, default=0.5)
-    pl.add_argument('--drop-2', type=float, default=0.5)
-    pl.add_argument('--l1', type=float, default=1e-8)
-    pl.add_argument('--l2', type=float, default=1e-8)
+    pl.add_argument('--epochs', type=int, default=cfg.epochs)
+    pl.add_argument('--batch-size', type=int, default=cfg.lcr_batch_size)
+    pl.add_argument('--lr', type=float, default=cfg.lcr_learning_rate)
+    pl.add_argument('--q', type=float, default=None,
+                    help='GCE loss q (default from config)')
+    pl.add_argument('--hop', type=int, default=cfg.lcr_hop)
+    pl.add_argument('--hidden-units', type=int, default=cfg.lcr_hidden_units)
+    pl.add_argument('--drop-1', type=float, default=cfg.lcr_drop_1)
+    pl.add_argument('--drop-2', type=float, default=cfg.lcr_drop_2)
+    pl.add_argument('--l1', type=float, default=cfg.lcr_l1)
+    pl.add_argument('--l2', type=float, default=cfg.lcr_l2)
     pl.add_argument('--load', default=None, help='checkpoint name/path to load for eval')
     pl.add_argument('--resume', nargs='?', const=True, default=None,
                     metavar='RUN_DIR',
@@ -302,7 +303,8 @@ def build_parser():
     pa = sub.add_parser('all', help='run casc then lcr (train+eval) in one shot')
     pa.add_argument('--run', default='both', choices=['train', 'eval', 'both'],
                     help='applied to both casc and lcr')
-    pa.add_argument('--epochs', type=int, default=20, help='applied to both casc and lcr')
+    pa.add_argument('--epochs', type=int, default=cfg.epochs,
+                    help='applied to both casc and lcr')
     pa.add_argument('--resume', nargs='?', const=True, default=None, metavar='RUN_DIR',
                     help='resume both models from the given run dir (newest run when omitted)')
     return p
@@ -322,12 +324,17 @@ def main(argv=None):
     if args.command == 'all':
         # The bare `all` subparser has no per-model flags; set shared defaults.
         import argparse
-        for attr, val in [('run', 'both'), ('epochs', 20), ('batch_size', 32),
-                          ('lr', 1e-4), ('q', 0.4), ('hop', 2), ('hidden_units', 512),
-                          ('drop_1', 0.5), ('drop_2', 0.5), ('l1', 1e-8), ('l2', 1e-8),
+        import lcr_plus_casc.config as cfgc
+        for attr, val in [('run', 'both'), ('epochs', cfgc.epochs),
+                          ('batch_size', cfgc.lcr_batch_size), ('lr', cfgc.lcr_learning_rate),
+                          ('q', None), ('hop', cfgc.lcr_hop),
+                          ('hidden_units', cfgc.lcr_hidden_units),
+                          ('drop_1', cfgc.lcr_drop_1), ('drop_2', cfgc.lcr_drop_2),
+                          ('l1', cfgc.lcr_l1), ('l2', cfgc.lcr_l2),
                           ('save', None), ('load', None), ('resume', None),
-                          ('test_year', 2016), ('test_type', 'test'),
-                          ('label_type', 'single'), ('val_emb', None), ('val_path', None),
+                          ('test_year', None), ('test_type', cfgc.test_type),
+                          ('label_type', cfgc.label_type),
+                          ('val_emb', None), ('val_path', None),
                           ('test_emb', None), ('test_path', None)]:
             if not hasattr(args, attr):
                 setattr(args, attr, val)

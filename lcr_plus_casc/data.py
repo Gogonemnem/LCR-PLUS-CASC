@@ -1,7 +1,13 @@
 import os
 
-from .config import *
-from .lcr.embedding import embed_separated, tokenize_separated
+from .config import (
+    aspect_category_mapper,
+    config,
+    path_mapper,
+    sentiment_category_mapper,
+)
+from .classifiers.embedding import embed_separated, tokenize_separated
+from .labeling.split_file import read_labeled
 
 import numpy as np
 import torch
@@ -23,65 +29,31 @@ for i, pol in enumerate(polarities):
     polarity_dict[i] = pol
     inv_polarity_dict[pol] = i
 
-def load_training_data(**kwargs):
-    sentences = []
-    cats = []
-    pols = []
-    if 'training_path' in kwargs:
-        training_path = kwargs['training_path']
-    else:
-        training_path = f'{root_path}/label.txt'
-    with open(training_path, 'r', encoding='utf-8') as f:
-        skip = False
-        for idx, line in enumerate(f):
-            # if skip:
-            #     skip = False
-            #     continue
+def _to_int(label, inv_dict):
+    """Map a category/polarity label to its integer index.
 
-            if idx % 2 == 1:
-                cat, pol = line.strip().split()
-                cats.append(inv_aspect_dict[cat])
-                pols.append(inv_polarity_dict[pol])
-            else:
-                # if line[0:2] == "##":
-                #     skip = True
-                #     continue
-                sentences.append(line.strip())
-    return sentences, cats, pols
-
-
-def parse_labeled_lines(text):
-    """Parse the alternating (sentence, 'cat pol') layout used by all split files.
-
-    Robust to extra whitespace and trailing '[SEP]' tokens. Returns (sentences, cats, pols)
-    with integer label indices.
+    Accepts a string name (e.g. 'food'/'positive') as produced by the CASC
+    labeling stage, or an integer (SemEval gold files store 0/1/2/3/4/5).
     """
-    import re
-    sentences = []
-    cats = []
-    pols = []
-    for idx, line in enumerate(text.splitlines()):
-        line = line.strip()
-        if idx % 2 == 1:
-            toks = [t for t in re.split(r'(?:\s*\[SEP\]\s*)*', line.replace('[SEP]', ' ')) if t]
-            if len(toks) < 2:
-                raise ValueError(f'Malformed label line {idx}: {line!r}')
-            cat, pol = toks[0], toks[1]
-            if cat not in inv_aspect_dict or pol not in inv_polarity_dict:
-                raise ValueError(f'Unknown label at line {idx}: {line!r}')
-            cats.append(inv_aspect_dict[cat])
-            pols.append(inv_polarity_dict[pol])
-        elif line:
-            sentences.append(line)
-    if len(sentences) != len(cats):
-        raise ValueError(f'Label/sentence mismatch: {len(sentences)} sentences vs {len(cats)} labels')
+    if isinstance(label, str) and label in inv_dict:
+        return inv_dict[label]
+    return int(label)
+
+
+def load_training_data(training_path=None, **kwargs):
+    """Read the CASC-labeled training set.
+
+    Uses labeling.read_labeled, which auto-detects TSV (idx/cat/pol/sentence)
+    vs the legacy alternating 'sentence\n label\n' layout, so both formats load
+    identically.
+    """
+    if training_path is None:
+        training_path = f'{root_path}/label.txt'
+    rows = read_labeled(training_path)
+    sentences = [row[3] for row in rows]
+    cats = [_to_int(row[1], inv_aspect_dict) for row in rows]
+    pols = [_to_int(row[2], inv_polarity_dict) for row in rows]
     return sentences, cats, pols
-
-
-def load_labeled_file(path):
-    """Load one split file (sentence/label alternating) into (sentences, cats, pols)."""
-    with open(path, 'r', encoding='utf-8') as f:
-        return parse_labeled_lines(f.read())
 
 
 def load_embedded_split(embed_folder, label_path):
@@ -108,75 +80,14 @@ def make_tensor_dataset(X, cats, pols):
     )
 
 
-def load_training_data2(**kwargs):
-    sentences = []
-    cats = []
-    pols = []
-    if 'training_path' in kwargs:
-        training_path = kwargs['training_path']
-        if '2015' in training_path:
-            p = r'datasets\restaurant\2015\test_single.txt'
-        elif '2016' in training_path:
-            p = r'datasets\restaurant\2016\test_single.txt'
-    else:
-        training_path = f'{root_path}/label.txt'
-    # with open(training_path, 'r', encoding='utf-8') as f:
-    with open(training_path, 'r', encoding='utf-8') as f, open(p, 'r', encoding='utf-8') as f1:
-        skip = False
-        skips = []
-        for idx, line in enumerate(f):
-            if skip:
-                skip = False
-                continue
-
-            if idx % 2 == 1:
-                continue
-                # cat, pol = line.strip().split()
-                # cats.append(inv_aspect_dict[cat])
-                # pols.append(inv_polarity_dict[pol])
-            else:
-                if line[0:2] == "##":
-                    skip = True
-                    skips.append(idx/2)
-                    continue
-                sentences.append(line.strip())
-
-        for idx, line in enumerate(f1):
-            if idx in skips:
-                continue
-
-            split_line = line.strip().split('\t')
-            if len(split_line) < 4:
-                continue
-
-            _, cat, pol, sentence = split_line
-            cats.append(int(cat))
-            pols.append(int(pol))
-
-    return sentences, cats, pols
-
 def save_in_separate(sentences, folder_path):
     os.makedirs(folder_path, exist_ok=True)
     total = len(str(len(sentences)))
 
-    
     for i, sent in enumerate(sentences):
-        # if i <=74:
-        #     continue
-        # if i >= 1000:
-        #     break
-
-        print(sent)
         tokens = tokenize_separated(sent)
         embedding = embed_separated(tokens)
-    
-        # print(tokens)
-        print(embedding)
-        print(i)
         number = str(i).rjust(total, '0')
-
-        
-
         np.save(f'{folder_path}/{number}', embedding)
 
 def save_to_single(folder_path):
@@ -194,14 +105,9 @@ def save_to_single(folder_path):
 
 def load_embedded_training(**kwargs):
     ss, cs, ps = load_training_data()
-    folder_path = f'{root_path}/training_embedding'
-    # save_in_separate(ss, folder_path)
-    folder_path = f'{root_path}/training_embedding/'
-    # save_in_single(folder_path)
     emb = np.load(f'{root_path}/training_embeddings.npy')
     return emb, cs, ps
 
-# dt = tf.data.Dataset.from_tensor_slices((emb, cs, ps))
 def load_semeval(year, data_type, label_type, **kwargs):
     path = f'{root_path}/{str(year)}/{data_type}_{label_type}.txt'
     if not os.path.exists(path):
@@ -212,7 +118,9 @@ def load_semeval(year, data_type, label_type, **kwargs):
         pols = []
 
         for line in f:
-            split_line = line.strip().replace(' [SEP] ', '').split('\t')
+            stripped = line.strip().replace(' [SEP] ', '')
+            # maxsplit keeps any embedded tabs inside the sentence intact.
+            split_line = stripped.split('\t', 3)
             if len(split_line) < 4:
                 continue
 
@@ -220,10 +128,8 @@ def load_semeval(year, data_type, label_type, **kwargs):
             cats.append(int(cat))
             pols.append(int(pol))
             sentences.append(sentence)
-        
+
         return sentences, cats, pols
-    
-# print(load_semeval())
 
 def load_embedded(load_func, **kwargs):
     ss, cs, ps = load_func(**kwargs)
@@ -246,34 +152,6 @@ def main():
     print(len(emb), len(cs), len(ps))
     print(cs.count(0), cs.count(1), cs.count(2))
     print(ps.count(0), ps.count(1))
-    # print(cs)
-    # print(ps)
-    # emb, cs, ps = load_embedded(load_training_data2, path=f'{root_path}/test_embedding_2016', training_path=r'datasets\restaurant\label 2016 single.txt')
-    # print(len(emb), len(cs), len(ps))
-
-    # emb, cs, ps = load_embedded(load_semeval, year=2015, data_type='test', label_type='single')
-    # print(len(emb), len(cs), len(ps))
-    # print(cs.count(0), cs.count(1), cs.count(2))
-    # print(ps.count(0), ps.count(1))
-    # # load_embedded(load_semeval, year=2015, data_type='val', label_type='single')
-
-    # emb, cs, ps = load_embedded(load_semeval, year=2015, data_type='test', label_type='multi')
-    # print(len(emb), len(cs), len(ps))
-    # print(cs.count(0), cs.count(1), cs.count(2))
-    # print(ps.count(0), ps.count(1))
-    # # load_embedded(load_semeval, year=2015, data_type='val', label_type='multi')
-
-    # emb, cs, ps = load_embedded(load_semeval, year=2016, data_type='test', label_type='single')
-    # print(len(emb), len(cs), len(ps))
-    # print(cs.count(0), cs.count(1), cs.count(2))
-    # print(ps.count(0), ps.count(1))
-    # # load_embedded(load_semeval, year=2016, data_type='val', label_type='single')
-
-    # emb, cs, ps = load_embedded(load_semeval, year=2016, data_type='test', label_type='multi')
-    # print(len(emb), len(cs), len(ps))
-    # print(cs.count(0), cs.count(1), cs.count(2))
-    # print(ps.count(0), ps.count(1))
-    # load_embedded(load_semeval, year=2016, data_type='val', label_type='multi')
 
 
 if __name__ == '__main__':

@@ -1,3 +1,5 @@
+"""LCR-Rot-hop++ model: two-tower (pol + cat) bilinear/hierarchical attention over BERT embeddings."""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -121,9 +123,9 @@ class _Branch(nn.Module):
 class LCRRothopPP(nn.Module):
     """Two-tower (pol + cat) LCR-Rot-hop++ model ported from the TF reference."""
 
-    def __init__(self, embedding_dim=768, hidden_units=None, invert=False, hop=1,
-                 hierarchy=(False, True), drop_1=0.2, drop_2=0.5,
-                 l1=0.0, l2=0.0):
+    def __init__(self, embedding_dim=768, num_pol=2, num_cat=3, hidden_units=None,
+                 invert=False, hop=1, hierarchy=(False, True),
+                 drop_1=0.2, drop_2=0.5, l1=0.0, l2=0.0):
         super().__init__()
         self.hidden_units = 768 if hidden_units is None else hidden_units
         self.hop = hop
@@ -138,8 +140,8 @@ class LCRRothopPP(nn.Module):
         # Each of the 4 reps is 2*hidden_units wide (mean over a BiLSTM output),
         # so the concatenated tower output is 8*hidden_units wide.
         tower_dim = 8 * self.hidden_units
-        self.pol_dense = nn.Linear(tower_dim, 2)
-        self.cat_dense = nn.Linear(tower_dim, 3)
+        self.pol_dense = nn.Linear(tower_dim, num_pol)
+        self.cat_dense = nn.Linear(tower_dim, num_cat)
 
     def forward(self, inputs):
         # inputs: [batch, total_seq, embedding_dim]

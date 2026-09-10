@@ -1,20 +1,30 @@
-from transformers import AutoTokenizer, BertForMaskedLM
-from ..config import *
-from ..filter_words import filter_words
-import torch
+"""Vocabulary generator: derive per-category word lists from MLM predictions."""
 from tqdm import tqdm
 
-class VocabGenerator:
+from ..config import (
+    K_1,
+    aspect_category_mapper,
+    aspect_seed_mapper,
+    config,
+    path_mapper,
+    sentiment_category_mapper,
+    sentiment_seed_mapper,
+)
+from .dictionary import filter_words
+from .mlm import MLMScorer
 
-    def __init__(self, save_results=True):
+
+class VocabGenerator:
+    """Build per-category vocabularies from MLM top-1 predictions on seeds."""
+
+    def __init__(self, save_results=True, scorer=None):
+        if scorer is None:
+            scorer = MLMScorer()
+        self.scorer = scorer
         self.domain = config['domain']
-        self.bert_type = bert_mapper[self.domain]
-        self.device = config['device']
-        self.mlm_model = BertForMaskedLM.from_pretrained(self.bert_type).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.bert_type)
         self.root_path = path_mapper[self.domain]
         self.save_results = save_results
-    
+
     def __call__(self):
         aspect_categories = aspect_category_mapper[self.domain]
         aspect_seeds = aspect_seed_mapper[self.domain]
@@ -27,36 +37,36 @@ class VocabGenerator:
         return aspect_vocabularies, sentiment_vocabularies
 
     def generate_vocabularies(self, categories, seeds):
-        # Initialise empty frequency table
-        freq_table = {}
-        for cat in categories:
-            freq_table[cat] = {}
-        
-        # Populate vocabulary frequencies for each category
+        freq_table = {cat: {} for cat in categories}
+
         for category in categories:
             print(f'Generating vocabulary for {category} category...')
             with open(f'{self.root_path}/train.txt', encoding='utf-8') as f:
                 for line in tqdm(f):
                     text = line.strip()
-                    if category in text:
-                        ids = self.tokenizer(text, return_tensors='pt', truncation=True)['input_ids']
-                        tokens = self.tokenizer.convert_ids_to_tokens(ids[0])
-                        word_predictions = self.mlm_model(ids.to(self.device))[0]
-                        word_scores, word_ids = torch.topk(word_predictions, K_1, -1)
-                        word_ids = word_ids.squeeze(0)
-                        for idx, token in enumerate(tokens):
-                            if token in seeds[category]:
-                                self.update_table(freq_table, category, self.tokenizer.convert_ids_to_tokens(word_ids[idx]))
-        
-        # Remove words appearing in multiple vocabularies (generate disjoint sets)
-        for category in categories:
-            for key in freq_table[category]:
-                for cat in categories:
-                    if freq_table[cat].get(key) != None and freq_table[cat][key] < freq_table[category][key]:
-                        del freq_table[cat][key]
-        
-        vocabularies = {}
+                    if category not in text:
+                        continue
+                    tokens, word_ids = self.scorer.topk(text, K_1)
+                    for idx, token in enumerate(tokens):
+                        if token in seeds[category]:
+                            self.update_table(
+                                freq_table, category,
+                                self.scorer.tokenizer.convert_ids_to_tokens(word_ids[idx]),
+                            )
 
+        best_cat, best_freq = {}, {}
+        for category in categories:
+            for word, freq in freq_table[category].items():
+                if best_freq.get(word, -1) < freq:
+                    best_cat[word] = category
+                    best_freq[word] = freq
+        for category in categories:
+            freq_table[category] = {
+                word: freq for word, freq in freq_table[category].items()
+                if best_cat[word] == category
+            }
+
+        vocabularies = {}
         for category in categories:
             words = sorted(((freq, word) for word, freq in freq_table[category].items()),
                            reverse=True)
@@ -68,7 +78,7 @@ class VocabGenerator:
                         f.write(f'{word} {freq}\n')
 
         return vocabularies
-    
+
     def update_table(self, freq_table, cat, tokens):
         for token in tokens:
             if token in filter_words or '##' in token:
@@ -91,13 +101,11 @@ class VocabGenerator:
 
     def _load_vocabulary(self, categories, folder_path):
         vocabularies = {}
-
         for category in categories:
             words = []
             with open(f'{folder_path}/dict_{category}.txt', encoding='utf-8') as f:
                 for line in tqdm(f):
                     word, freq = line.strip().split()
-                    words.append((freq, word))
+                    words.append((int(freq), word))
             vocabularies[category] = words
-
         return vocabularies
