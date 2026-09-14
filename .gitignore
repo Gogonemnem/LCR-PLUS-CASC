@@ -58,3 +58,8 @@ coverage.xml
 docs/_build/
 .venv-test/
 .venv/
+
+# Session/local artifacts
+AGENTS.md
+paper.pdf
+smoke_test.py
