@@ -16,15 +16,8 @@ dependencies = [
     "pyyaml",
 ]
 
-[project.optional-dependencies]
-tf = [
-    "tensorflow",
-    "tensorflow-addons",
-    "keras-tuner",
-]
-
 [project.scripts]
-lcr = "main:main"
+lcr-casc = "main:main"
 
 [build-system]
 requires = ["setuptools>=61,<84"]

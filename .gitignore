@@ -61,5 +61,5 @@ docs/_build/
 
 # Session/local artifacts
 AGENTS.md
-paper.pdf
+*.pdf
 smoke_test.py
