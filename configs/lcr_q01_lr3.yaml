@@ -1,0 +1,18 @@
+# Paper Table 7 aligned recipe: q=0.1, LCR-module LR=0.001 (BERT stays 1e-5),
+# hop 6, hidden 768, L1/L2 1e-7, drop1 0.5, drop2 0.3.
+name: lcr_q01_lr3
+domain: restaurant
+
+epochs: 20
+gce_q: 0.1
+lcr_batch_size: 32
+lcr_learning_rate: 1.0e-3
+lcr_bert_lr: 1.0e-5
+lcr_hidden_units: 768
+lcr_hop: 6
+lcr_drop_1: 0.5
+lcr_drop_2: 0.3
+lcr_l1: 1.0e-7
+lcr_l2: 1.0e-7
+seed: 0
+validation_data_size: 100

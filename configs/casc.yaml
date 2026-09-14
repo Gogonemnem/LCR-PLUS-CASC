@@ -1,0 +1,15 @@
+# CASC (BERTLinear) recipe. Partial TrainingConfig: listed fields override
+# dataclass defaults, everything else keeps its default / prior CLI value.
+name: casc
+domain: restaurant
+
+epochs: 15
+gce_q: 0.4
+learning_rate: 1.0e-5
+batch_size: 32
+seed: 0
+validation_data_size: 100
+
+test_year: 2016
+test_type: test
+label_type: single

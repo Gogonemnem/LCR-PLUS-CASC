@@ -3,6 +3,8 @@ venv/
 datasets/
 logs/
 output/
+smoke_tmp/
+smoke_tmp_dbg/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
