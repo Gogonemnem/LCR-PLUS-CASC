@@ -2,12 +2,12 @@
 import torch
 from transformers import AutoTokenizer, BertForMaskedLM
 
-from ..config import bert_mapper, config
+from ..config import config, domain
 
 
 class MLMScorer:
     def __init__(self):
-        self.bert_type = bert_mapper[config['domain']]
+        self.bert_type = domain().bert_model
         self.device = config['device']
         self.tokenizer = AutoTokenizer.from_pretrained(self.bert_type)
         self._model = None
@@ -15,7 +15,8 @@ class MLMScorer:
     @property
     def model(self):
         if self._model is None:
-            self._model = BertForMaskedLM.from_pretrained(self.bert_type).to(self.device)
+            from ..classifiers.training import _parallel
+            self._model = _parallel(BertForMaskedLM.from_pretrained(self.bert_type).to(self.device))
         return self._model
 
     def tokenize(self, text, max_length=None):

@@ -3,7 +3,7 @@
 The official hosting (catalogue/metashare.ilsp.gr) requires a login to download,
 so we mirror the canonical files from the public GitHub repo
 `howardhsu/ABSA_preprocessing`, which contains the exact XMLs `semeval_reader.py`
-expects under datasets/restaurant/.
+expects under datasets/restaurant/raw/.
 
 Usage:
     python download_semeval.py            # download if missing, validate all
@@ -85,8 +85,8 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="re-download even if present")
     ap.add_argument(
         "--dest",
-        default=os.path.join(os.path.dirname(__file__), "datasets", "restaurant"),
-        help="destination directory (default: <repo>/datasets/restaurant)",
+        default=os.path.join(os.path.dirname(__file__), "datasets", "restaurant", "raw"),
+        help="destination directory (default: <repo>/datasets/restaurant/raw)",
     )
     args = ap.parse_args()
 

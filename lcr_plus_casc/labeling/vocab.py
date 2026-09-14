@@ -1,15 +1,7 @@
 """Vocabulary generator: derive per-category word lists from MLM predictions."""
 from tqdm import tqdm
 
-from ..config import (
-    K_1,
-    aspect_category_mapper,
-    aspect_seed_mapper,
-    config,
-    path_mapper,
-    sentiment_category_mapper,
-    sentiment_seed_mapper,
-)
+from ..config import domain
 from .dictionary import filter_words
 from .mlm import MLMScorer
 
@@ -21,17 +13,17 @@ class VocabGenerator:
         if scorer is None:
             scorer = MLMScorer()
         self.scorer = scorer
-        self.domain = config['domain']
-        self.root_path = path_mapper[self.domain]
+        self.domain_cfg = domain()
+        self.root_path = self.domain_cfg.root_path
         self.save_results = save_results
 
     def __call__(self):
-        aspect_categories = aspect_category_mapper[self.domain]
-        aspect_seeds = aspect_seed_mapper[self.domain]
+        aspect_categories = self.domain_cfg.categories
+        aspect_seeds = self.domain_cfg.aspect_seeds
         aspect_vocabularies = self.generate_vocabularies(aspect_categories, aspect_seeds)
 
-        sentiment_categories = sentiment_category_mapper[self.domain]
-        sentiment_seeds = sentiment_seed_mapper[self.domain]
+        sentiment_categories = self.domain_cfg.polarities
+        sentiment_seeds = self.domain_cfg.sentiment_seeds
         sentiment_vocabularies = self.generate_vocabularies(sentiment_categories, sentiment_seeds)
 
         return aspect_vocabularies, sentiment_vocabularies
@@ -41,12 +33,12 @@ class VocabGenerator:
 
         for category in categories:
             print(f'Generating vocabulary for {category} category...')
-            with open(f'{self.root_path}/train.txt', encoding='utf-8') as f:
+            with open(f'{self.root_path}/raw/train.txt', encoding='utf-8') as f:
                 for line in tqdm(f):
                     text = line.strip()
                     if category not in text:
                         continue
-                    tokens, word_ids = self.scorer.topk(text, K_1)
+                    tokens, word_ids = self.scorer.topk(text, self.domain_cfg.K_1)
                     for idx, token in enumerate(tokens):
                         if token in seeds[category]:
                             self.update_table(
@@ -73,7 +65,7 @@ class VocabGenerator:
             vocabularies[category] = words
 
             if self.save_results:
-                with open(f'{self.root_path}/dict_{category}.txt', 'w', encoding='utf-8') as f:
+                with open(f'{self.root_path}/lexicons/dict_{category}.txt', 'w', encoding='utf-8') as f:
                     for freq, word in words:
                         f.write(f'{word} {freq}\n')
 
@@ -87,14 +79,14 @@ class VocabGenerator:
 
     def from_folder(self, folder_path=None, aspect_categories=None, sentiment_categories=None):
         if folder_path is None:
-            folder_path = self.root_path
+            folder_path = f'{self.root_path}/lexicons'
 
         if aspect_categories is None:
-            aspect_categories = aspect_category_mapper[self.domain]
+            aspect_categories = self.domain_cfg.categories
         aspect_vocabularies = self._load_vocabulary(aspect_categories, folder_path)
 
         if sentiment_categories is None:
-            sentiment_categories = sentiment_category_mapper[self.domain]
+            sentiment_categories = self.domain_cfg.polarities
         sentiment_vocabularies = self._load_vocabulary(sentiment_categories, folder_path)
 
         return aspect_vocabularies, sentiment_vocabularies

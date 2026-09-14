@@ -1,4 +1,5 @@
 """Convert Semeval ABSA gold XML files into TSV training/test inputs."""
+import os
 import xml.etree.ElementTree as ET
 
 POLARITY_MAP = {'positive': 1, 'neutral': 0, 'negative': -1}
@@ -22,6 +23,7 @@ def semeval_to_csv(f_in: str, f_out: str, multi: bool = True):
     polarity_cnt = {name: 0 for name in ('positive', 'neutral', 'negative')}
     category_cnt = {name: 0 for name in _CATEGORY_NAMES.values()}
 
+    os.makedirs(os.path.dirname(os.path.abspath(f_out)), exist_ok=True)
     with open(f_out, 'w', encoding='utf-8') as file:
         for sentence in root.iter('sentence'):
             sent = sentence.find('text').text
@@ -60,5 +62,24 @@ def semeval_to_csv(f_in: str, f_out: str, multi: bool = True):
 
 
 if __name__ == '__main__':
-    semeval_to_csv(r'datasets\restaurant\EN_REST_SB1_TEST.xml.gold', 'test_multi16.txt', multi=True)
-    semeval_to_csv(r'datasets\restaurant\ABSA15_Restaurants_Test.xml', 'test_multi15.txt', multi=True)
+    # Resolve the active domain's data root (falls back to restaurant), then
+    # emit both label_type splits for each SemEval test gold into the
+    # {root}/{year}/test_{single,multiple}.txt layout that data.load_semeval reads.
+    try:
+        from ..config import domain
+        root = domain().root_path
+    except Exception:
+        root = 'datasets/restaurant'
+
+    golds = {
+        2016: f'{root}/raw/EN_REST_SB1_TEST.xml.gold',
+        2015: f'{root}/raw/ABSA15_Restaurants_Test.xml',
+    }
+    for year in sorted(golds):
+        f_in = golds[year]
+        if not os.path.exists(f_in):
+            print(f'skip {year}: no gold {f_in}')
+            continue
+        os.makedirs(f'{root}/{year}', exist_ok=True)
+        semeval_to_csv(f_in, f'{root}/{year}/test_single.txt', multi=False)
+        semeval_to_csv(f_in, f'{root}/{year}/test_multiple.txt', multi=True)

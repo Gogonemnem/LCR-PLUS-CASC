@@ -3,13 +3,7 @@ import re
 
 import numpy as np
 
-from ..config import (
-    aspect_category_mapper,
-    config,
-    lambda_threshold,
-    path_mapper,
-    sentiment_category_mapper,
-)
+from ..config import domain, training
 from .split_file import read_rows
 
 
@@ -17,14 +11,14 @@ class Labeler:
     """Z-score each score column and keep sentences with a single clear label."""
 
     def __init__(self):
-        self.root_path = path_mapper[config['domain']]
+        self.root_path = domain().root_path
 
     def __call__(self):
-        domain = config['domain']
-        categories = list(aspect_category_mapper[domain])
-        polarities = list(sentiment_category_mapper[domain])
+        cfg = domain()
+        categories = list(cfg.categories)
+        polarities = list(cfg.polarities)
 
-        rows = read_rows(f'{self.root_path}/scores.txt')
+        rows = read_rows(f'{self.root_path}/intermediate/scores.txt')
 
         # column layout: [sentence, {cat}_score, {cat}_word, ..., {pol}_score, {pol}_word]
         cols = []
@@ -55,7 +49,7 @@ class Labeler:
                     value = float(row[c['score']])
                     s = sigma[c['name']]
                     dev = 0.0 if s == 0 else (value - means[c['name']]) / s
-                    if dev >= lambda_threshold:
+                    if dev >= cfg.lambda_threshold:
                         if c['aspect']:
                             aspect.append(c['name'])
                             aspect_word = row[c['word']]
@@ -65,7 +59,9 @@ class Labeler:
                 if len(aspect) == 1 and len(sentiment) == 1:
                     separated = separate_sentence(aspect_word, sentence)
                     if separated is None:
-                        continue
+                        if training.label_require_word:
+                            continue
+                        separated = sentence
                     nf.write(f'{idx}\t{aspect[0]}\t{sentiment[0]}\t{separated}\n')
                     keyword = f'{aspect[0]}-{sentiment[0]}'
                     cnt[keyword] = cnt.get(keyword, 0) + 1
