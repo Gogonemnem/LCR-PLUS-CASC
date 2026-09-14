@@ -1,7 +1,4 @@
-torch
-tensorflow
-tensorflow-addons
-keras-tuner
+torch>=2.0
 transformers
 tqdm
 numpy
@@ -9,3 +6,4 @@ spacy
 pandas
 scikit-learn
 optuna
+pyyaml
