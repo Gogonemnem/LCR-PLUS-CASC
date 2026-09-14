@@ -59,7 +59,7 @@ Each run writes artifacts to `output/<config-name>/<timestamp>_<kind>/`: `config
 Devices: by default every torch module is wrapped with `DataParallel` and fans batches out across all visible GPUs (labeling scoring and training alike). `--device cuda:N` pins one GPU; `--device cpu` forces CPU.
 
 ## Data
-The labeled data comes from the SemEval 2015 (Wang & Ho) and SemEval 2016 Track 2 (Tang et al.) aspect-based sentiment analysis restaurant-domain datasets. The original XML sources plus the flat `train.txt`/`test.txt` files live under `datasets/restaurant/raw/` (laptop domain: `datasets/laptop/raw/`, same layout). The per-year `train_{single,multiple}.txt` / `test_{single,multiple}.txt` files are regenerated from those XMLs by `lcr_plus_casc/labeling/semeval_reader.py`.
+The labeled data comes from the SemEval 2015 (Wang & Ho) and SemEval 2016 Track 2 (Tang et al.) aspect-based sentiment analysis restaurant-domain datasets. The original XML sources plus the flat `train.txt`/`test.txt` files belong under `datasets/restaurant/raw/` (laptop domain: `datasets/laptop/raw/`, same layout); download them with `python scripts/download_semeval.py` (they are mirrored from `howardhsu/ABSA_preprocessing` because the official host requires a login). The per-year `train_{single,multiple}.txt` / `test_{single,multiple}.txt` files are regenerated from those XMLs by `lcr_plus_casc/labeling/semeval_reader.py`.
 
 The **training rows** (`datasets/restaurant/label.txt`) are not the gold files but the product of the unsupervised preprocessing: `prep` runs the MLM scoring pipeline over the unlabeled `raw/train.txt` (≈17k sentences) and thresholds the scores into aspect + polarity labels.
 
